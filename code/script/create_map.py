@@ -68,6 +68,5 @@ def create_random_matrix(size):
 def create_test(size):
     mat = create_random_matrix(size)
     path = memory + f"\\test_{size}.json"
-    print(path)
     statu = save_matrix(path, mat)
     return statu

@@ -1,0 +1,572 @@
+[
+    [
+        null,
+        {
+            "payage": 18,
+            "distance": 21.42,
+            "rapidite": 83.74,
+            "cout": 27.46
+        },
+        {
+            "payage": 18,
+            "distance": 71.33,
+            "rapidite": 50.74,
+            "cout": 45.81
+        },
+        {
+            "payage": 18,
+            "distance": 56.18,
+            "rapidite": 71.32,
+            "cout": 42.36
+        },
+        {
+            "payage": 1,
+            "distance": 55.63,
+            "rapidite": 28.65,
+            "cout": 33.54
+        },
+        {
+            "payage": 17,
+            "distance": 50.92,
+            "rapidite": 39.73,
+            "cout": 33.41
+        },
+        {
+            "payage": 3,
+            "distance": 9.85,
+            "rapidite": 40.17,
+            "cout": 12.96
+        },
+        {
+            "payage": 20,
+            "distance": 79.37,
+            "rapidite": 95.91,
+            "cout": 58.87
+        },
+        {
+            "payage": 1,
+            "distance": 88.56,
+            "rapidite": 22.55,
+            "cout": 48.79
+        },
+        {
+            "payage": 11,
+            "distance": 41.7,
+            "rapidite": 88.95,
+            "cout": 38.64
+        }
+    ],
+    [
+        {
+            "payage": 18,
+            "distance": 22.04,
+            "rapidite": 81.05,
+            "cout": 25.69
+        },
+        null,
+        {
+            "payage": 4,
+            "distance": 34.03,
+            "rapidite": 20.59,
+            "cout": 21.13
+        },
+        {
+            "payage": 8,
+            "distance": 12.93,
+            "rapidite": 55.41,
+            "cout": 17.55
+        },
+        {
+            "payage": 2,
+            "distance": 19.32,
+            "rapidite": 22.32,
+            "cout": 14.12
+        },
+        {
+            "payage": 19,
+            "distance": 10.3,
+            "rapidite": 86.25,
+            "cout": 22.4
+        },
+        {
+            "payage": 16,
+            "distance": 43.29,
+            "rapidite": 73.66,
+            "cout": 36.38
+        },
+        {
+            "payage": 19,
+            "distance": 80.3,
+            "rapidite": 112.68,
+            "cout": 62.69
+        },
+        {
+            "payage": 15,
+            "distance": 41.81,
+            "rapidite": 35.23,
+            "cout": 27.95
+        },
+        {
+            "payage": 19,
+            "distance": 22.61,
+            "rapidite": 69.61,
+            "cout": 25.22
+        }
+    ],
+    [
+        {
+            "payage": 18,
+            "distance": 73.34,
+            "rapidite": 47.43,
+            "cout": 42.06
+        },
+        {
+            "payage": 4,
+            "distance": 32.09,
+            "rapidite": 19.28,
+            "cout": 21.2
+        },
+        null,
+        {
+            "payage": 14,
+            "distance": 48.22,
+            "rapidite": 99.26,
+            "cout": 43.96
+        },
+        {
+            "payage": 9,
+            "distance": 52.18,
+            "rapidite": 110.42,
+            "cout": 48.17
+        },
+        {
+            "payage": 18,
+            "distance": 91.18,
+            "rapidite": 51.66,
+            "cout": 55.92
+        },
+        {
+            "payage": 12,
+            "distance": 71.74,
+            "rapidite": 118.97,
+            "cout": 59.66
+        },
+        {
+            "payage": 5,
+            "distance": 18.1,
+            "rapidite": 70.36,
+            "cout": 23.12
+        },
+        {
+            "payage": 11,
+            "distance": 97.64,
+            "rapidite": 87.1,
+            "cout": 66.24
+        },
+        {
+            "payage": 19,
+            "distance": 74.61,
+            "rapidite": 55.82,
+            "cout": 48.47
+        }
+    ],
+    [
+        {
+            "payage": 18,
+            "distance": 61.78,
+            "rapidite": 77.51,
+            "cout": 42.44
+        },
+        {
+            "payage": 8,
+            "distance": 13.85,
+            "rapidite": 58.71,
+            "cout": 16.65
+        },
+        {
+            "payage": 14,
+            "distance": 44.46,
+            "rapidite": 97.65,
+            "cout": 43.97
+        },
+        null,
+        {
+            "payage": 10,
+            "distance": 37.06,
+            "rapidite": 34.08,
+            "cout": 25.35
+        },
+        {
+            "payage": 15,
+            "distance": 40.05,
+            "rapidite": 109.13,
+            "cout": 41.85
+        },
+        {
+            "payage": 18,
+            "distance": 86.74,
+            "rapidite": 99.86,
+            "cout": 63.34
+        },
+        {
+            "payage": 16,
+            "distance": 7.26,
+            "rapidite": 115.78,
+            "cout": 26.79
+        },
+        {
+            "payage": 14,
+            "distance": 65.73,
+            "rapidite": 102.04,
+            "cout": 53.27
+        },
+        {
+            "payage": 3,
+            "distance": 36.14,
+            "rapidite": 51.94,
+            "cout": 28.46
+        }
+    ],
+    [
+        {
+            "payage": 1,
+            "distance": 56.42,
+            "rapidite": 26.22,
+            "cout": 31.9
+        },
+        {
+            "payage": 2,
+            "distance": 18.88,
+            "rapidite": 24.16,
+            "cout": 12.91
+        },
+        {
+            "payage": 9,
+            "distance": 47.66,
+            "rapidite": 105.17,
+            "cout": 50.46
+        },
+        {
+            "payage": 10,
+            "distance": 40.28,
+            "rapidite": 35.53,
+            "cout": 26.9
+        },
+        null,
+        {
+            "payage": 19,
+            "distance": 25.94,
+            "rapidite": 102.78,
+            "cout": 33.53
+        },
+        {
+            "payage": 18,
+            "distance": 95.31,
+            "rapidite": 97.51,
+            "cout": 67.16
+        },
+        {
+            "payage": 7,
+            "distance": 98.8,
+            "rapidite": 47.04,
+            "cout": 58.81
+        },
+        {
+            "payage": 14,
+            "distance": 89.55,
+            "rapidite": 8.29,
+            "cout": 46.43
+        },
+        {
+            "payage": 14,
+            "distance": 53.2,
+            "rapidite": 8.05,
+            "cout": 28.21
+        }
+    ],
+    [
+        {
+            "payage": 17,
+            "distance": 55.92,
+            "rapidite": 36.17,
+            "cout": 35.78
+        },
+        {
+            "payage": 19,
+            "distance": 9.86,
+            "rapidite": 91.18,
+            "cout": 23.39
+        },
+        {
+            "payage": 18,
+            "distance": 86.65,
+            "rapidite": 51.49,
+            "cout": 60.19
+        },
+        {
+            "payage": 15,
+            "distance": 43.52,
+            "rapidite": 102.04,
+            "cout": 43.75
+        },
+        {
+            "payage": 19,
+            "distance": 25.21,
+            "rapidite": 109.19,
+            "cout": 34.66
+        },
+        null,
+        {
+            "payage": 20,
+            "distance": 97.37,
+            "rapidite": 26.79,
+            "cout": 54.05
+        },
+        {
+            "payage": 10,
+            "distance": 98.92,
+            "rapidite": 75.34,
+            "cout": 64.53
+        },
+        {
+            "payage": 7,
+            "distance": 79.23,
+            "rapidite": 17.64,
+            "cout": 43.14
+        },
+        {
+            "payage": 13,
+            "distance": 15.73,
+            "rapidite": 60.85,
+            "cout": 20.03
+        }
+    ],
+    [
+        {
+            "payage": 3,
+            "distance": 9.2,
+            "rapidite": 42.24,
+            "cout": 12.13
+        },
+        {
+            "payage": 16,
+            "distance": 42.55,
+            "rapidite": 75.49,
+            "cout": 36.52
+        },
+        {
+            "payage": 12,
+            "distance": 66.39,
+            "rapidite": 125.9,
+            "cout": 61.5
+        },
+        {
+            "payage": 18,
+            "distance": 92.27,
+            "rapidite": 90.04,
+            "cout": 61.1
+        },
+        {
+            "payage": 18,
+            "distance": 96.6,
+            "rapidite": 98.71,
+            "cout": 62.47
+        },
+        {
+            "payage": 20,
+            "distance": 87.78,
+            "rapidite": 24.74,
+            "cout": 49.33
+        },
+        null,
+        {
+            "payage": 2,
+            "distance": 52.43,
+            "rapidite": 30.58,
+            "cout": 32.33
+        },
+        {
+            "payage": 12,
+            "distance": 44.08,
+            "rapidite": 59.29,
+            "cout": 33.9
+        },
+        {
+            "payage": 8,
+            "distance": 38.68,
+            "rapidite": 66.9,
+            "cout": 32.72
+        }
+    ],
+    [
+        {
+            "payage": 20,
+            "distance": 77.01,
+            "rapidite": 101.28,
+            "cout": 55.58
+        },
+        {
+            "payage": 19,
+            "distance": 72.38,
+            "rapidite": 122.88,
+            "cout": 57.72
+        },
+        {
+            "payage": 5,
+            "distance": 16.89,
+            "rapidite": 68.72,
+            "cout": 24.18
+        },
+        {
+            "payage": 16,
+            "distance": 7.23,
+            "rapidite": 110.01,
+            "cout": 29.42
+        },
+        {
+            "payage": 7,
+            "distance": 100.38,
+            "rapidite": 48.95,
+            "cout": 61.2
+        },
+        {
+            "payage": 10,
+            "distance": 106.52,
+            "rapidite": 77.73,
+            "cout": 59.34
+        },
+        {
+            "payage": 2,
+            "distance": 48.78,
+            "rapidite": 30.12,
+            "cout": 32.89
+        },
+        null,
+        {
+            "payage": 2,
+            "distance": 92.81,
+            "rapidite": 69.13,
+            "cout": 60.23
+        },
+        {
+            "payage": 8,
+            "distance": 81.46,
+            "rapidite": 52.25,
+            "cout": 51.18
+        }
+    ],
+    [
+        {
+            "payage": 1,
+            "distance": 97.29,
+            "rapidite": 21.54,
+            "cout": 45.58
+        },
+        {
+            "payage": 15,
+            "distance": 40.58,
+            "rapidite": 35.59,
+            "cout": 25.91
+        },
+        {
+            "payage": 11,
+            "distance": 104.72,
+            "rapidite": 78.46,
+            "cout": 63.53
+        },
+        {
+            "payage": 14,
+            "distance": 72.01,
+            "rapidite": 105.08,
+            "cout": 51.61
+        },
+        {
+            "payage": 14,
+            "distance": 90.45,
+            "rapidite": 8.79,
+            "cout": 43.08
+        },
+        {
+            "payage": 7,
+            "distance": 84.16,
+            "rapidite": 16.23,
+            "cout": 41.25
+        },
+        {
+            "payage": 12,
+            "distance": 41.61,
+            "rapidite": 63.12,
+            "cout": 35.35
+        },
+        {
+            "payage": 2,
+            "distance": 96.56,
+            "rapidite": 68.59,
+            "cout": 54.21
+        },
+        null,
+        {
+            "payage": 17,
+            "distance": 58.34,
+            "rapidite": 52.33,
+            "cout": 39.64
+        }
+    ],
+    [
+        {
+            "payage": 11,
+            "distance": 38.1,
+            "rapidite": 80.72,
+            "cout": 40.99
+        },
+        {
+            "payage": 19,
+            "distance": 20.56,
+            "rapidite": 64.48,
+            "cout": 26.36
+        },
+        {
+            "payage": 19,
+            "distance": 70.67,
+            "rapidite": 57.57,
+            "cout": 51.45
+        },
+        {
+            "payage": 3,
+            "distance": 33.01,
+            "rapidite": 57.08,
+            "cout": 31.0
+        },
+        {
+            "payage": 14,
+            "distance": 50.01,
+            "rapidite": 8.01,
+            "cout": 27.75
+        },
+        {
+            "payage": 13,
+            "distance": 16.7,
+            "rapidite": 65.86,
+            "cout": 19.4
+        },
+        {
+            "payage": 8,
+            "distance": 40.81,
+            "rapidite": 63.84,
+            "cout": 30.72
+        },
+        {
+            "payage": 8,
+            "distance": 76.2,
+            "rapidite": 55.7,
+            "cout": 46.72
+        },
+        {
+            "payage": 17,
+            "distance": 58.18,
+            "rapidite": 56.57,
+            "cout": 41.99
+        },
+        null
+    ]
+]
