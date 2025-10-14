@@ -39,29 +39,32 @@ def create_random_matrix(size):
             if i == j:
                 matrix[i][j] = None
             else:
-                distance = r.uniform(5, 100)
-                rapidite = r.uniform(5, 120)
-                payage = r.randint(1, 20)
-                cout = calculate_cost(distance, rapidite)
+                if r.choice([True, False]):
+                    distance = r.uniform(5, 100)
+                    rapidite = r.uniform(5, 120)
+                    payage = r.randint(1, 20)
+                    cout = calculate_cost(distance, rapidite)
 
-                road = {
-                    "payage": round(payage,2),
-                    "distance": round(distance,2),
-                    "rapidite": round(rapidite,2),
-                    "cout": round(cout,2)
-                }
+                    road = {
+                        "payage": round(payage,2),
+                        "distance": round(distance,2),
+                        "rapidite": round(rapidite,2),
+                        "cout": round(cout,2)
+                    }
 
-                # Symétrie pour les deux sens
-                matrix[i][j] = road
+                    matrix[i][j] = road
 
-                reversed_road = {
-                    "payage": round(payage,2),
-                    "distance": perturb_value(round(distance,2)),
-                    "rapidite": perturb_value(round(rapidite,2)),
-                    "cout": perturb_value(round(cout,2))
-                }
+                    reversed_road = {
+                        "payage": round(payage,2),
+                        "distance": perturb_value(round(distance,2)),
+                        "rapidite": perturb_value(round(rapidite,2)),
+                        "cout": perturb_value(round(cout,2))
+                    }
 
-                matrix[j][i] = reversed_road.copy()
+                    matrix[j][i] = reversed_road
+                else:
+                    matrix[i][j] = None
+                    matrix[j][i] = None
 
     return matrix
 
