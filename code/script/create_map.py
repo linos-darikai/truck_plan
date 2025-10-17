@@ -131,7 +131,7 @@ def create_edge(matrix, i, j):
     matrix[j][i] = reversed_road
 
 
-def create_random_matrix(size):
+def create_random_conected_matrix(size):
     """
     Generate a connected graph represented by an adjacency matrix with random edges.
 
@@ -151,6 +151,18 @@ def create_random_matrix(size):
         if is_connected(matrix):
             return matrix
 
+#create the characteristic
+def create_node_state(size):
+    product = ["metal","wood","meat", "honey"]
+    ans =  []
+    for i in range(size):
+        hour_start = r.randint(8, 20)
+        minute_start = r.choice([0, 15, 30, 45])
+        hour_end = r.randint(hour_start + 1, 23)
+        minute_end = r.choice([0, 15, 30, 45])
+        ans.append({"state": (r.choice(["stock","shop"]),r.choice(product)),"schedule":{"start":(hour_start,minute_start),"end":(hour_end,minute_end)}})
+    return ans
+
 #save a test after create it
 def create_test(size):
     """
@@ -162,9 +174,11 @@ def create_test(size):
     Returns:
         bool: True if saved successfully, False otherwise.
     """
-    mat = create_random_matrix(size)
+    mat = create_random_conected_matrix(size)
+    state = create_node_state(size)
+    memo = {"node_state":state,"matrix":mat}
     path = memory + f"\\test_{size}.json"
-    status = save_matrix(path, mat)
+    status = save_matrix(path, memo)
     return status
 
 #print the graph
@@ -206,11 +220,14 @@ def draw_graph_from_matrix(matrix):
 
     nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
 
-    plt.title("Graph Visualization with Multiline Edge Attributes")
+    plt.title("Graph Visualization")
     plt.axis('off')
     plt.show()
 
 #text
 if __name__ == "__main__":
-    graph = load_matrix(".\\media\\test\\test_5.json")
-    draw_graph_from_matrix(graph)
+    create_test(5)
+    memo = load_matrix(".\\media\\test\\test_5.json")
+    print(memo["node_state"],"\n")
+    print(memo["matrix"])
+    draw_graph_from_matrix(memo["matrix"])

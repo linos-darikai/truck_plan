@@ -1,87 +1,181 @@
-[
-    [
-        null,
+{
+    "node_state": [
         {
-            "toll": 12,
-            "distance": 93.1,
-            "duration": 10.9,
-            "cost": 52.32
+            "state": [
+                "stock",
+                "wood"
+            ],
+            "schedule": {
+                "start": [
+                    9,
+                    15
+                ],
+                "end": [
+                    22,
+                    30
+                ]
+            }
         },
-        null,
-        null,
-        null
-    ],
-    [
         {
-            "toll": 12,
-            "distance": 94.62,
-            "duration": 11.39,
-            "cost": 49.59
+            "state": [
+                "stock",
+                "meat"
+            ],
+            "schedule": {
+                "start": [
+                    10,
+                    45
+                ],
+                "end": [
+                    23,
+                    30
+                ]
+            }
         },
-        null,
         {
-            "toll": 11,
-            "distance": 84.72,
-            "duration": 114.85,
-            "cost": 65.33
+            "state": [
+                "shop",
+                "metal"
+            ],
+            "schedule": {
+                "start": [
+                    13,
+                    45
+                ],
+                "end": [
+                    17,
+                    45
+                ]
+            }
         },
-        null,
         {
-            "toll": 4,
-            "distance": 73.1,
-            "duration": 28.38,
-            "cost": 42.23
+            "state": [
+                "shop",
+                "honey"
+            ],
+            "schedule": {
+                "start": [
+                    11,
+                    15
+                ],
+                "end": [
+                    15,
+                    0
+                ]
+            }
+        },
+        {
+            "state": [
+                "stock",
+                "wood"
+            ],
+            "schedule": {
+                "start": [
+                    10,
+                    15
+                ],
+                "end": [
+                    12,
+                    45
+                ]
+            }
         }
     ],
-    [
-        null,
-        {
-            "toll": 11,
-            "distance": 80.38,
-            "duration": 109.05,
-            "cost": 68.73
-        },
-        null,
-        {
-            "toll": 19,
-            "distance": 11.87,
-            "duration": 30.28,
-            "cost": 11.99
-        },
-        null
-    ],
-    [
-        null,
-        null,
-        {
-            "toll": 19,
-            "distance": 11.54,
-            "duration": 29.02,
-            "cost": 11.61
-        },
-        null,
-        {
-            "toll": 6,
-            "distance": 67.28,
-            "duration": 45.0,
-            "cost": 42.64
-        }
-    ],
-    [
-        null,
-        {
-            "toll": 4,
-            "distance": 69.36,
-            "duration": 25.89,
-            "cost": 41.16
-        },
-        null,
-        {
-            "toll": 6,
-            "distance": 61.05,
-            "duration": 42.57,
-            "cost": 45.57
-        },
-        null
+    "matrix": [
+        [
+            null,
+            {
+                "toll": 17,
+                "distance": 88.19,
+                "duration": 21.72,
+                "cost": 48.44
+            },
+            null,
+            {
+                "toll": 10,
+                "distance": 50.27,
+                "duration": 55.54,
+                "cost": 36.24
+            },
+            {
+                "toll": 2,
+                "distance": 76.48,
+                "duration": 119.71,
+                "cost": 62.18
+            }
+        ],
+        [
+            {
+                "toll": 17,
+                "distance": 80.39,
+                "duration": 21.53,
+                "cost": 46.11
+            },
+            null,
+            null,
+            null,
+            {
+                "toll": 16,
+                "distance": 59.31,
+                "duration": 114.32,
+                "cost": 52.52
+            }
+        ],
+        [
+            null,
+            null,
+            null,
+            null,
+            {
+                "toll": 11,
+                "distance": 38.48,
+                "duration": 50.4,
+                "cost": 29.32
+            }
+        ],
+        [
+            {
+                "toll": 10,
+                "distance": 54.34,
+                "duration": 61.05,
+                "cost": 33.68
+            },
+            null,
+            null,
+            null,
+            {
+                "toll": 8,
+                "distance": 53.47,
+                "duration": 11.25,
+                "cost": 28.98
+            }
+        ],
+        [
+            {
+                "toll": 2,
+                "distance": 75.68,
+                "duration": 116.74,
+                "cost": 65.33
+            },
+            {
+                "toll": 16,
+                "distance": 61.8,
+                "duration": 108.57,
+                "cost": 47.88
+            },
+            {
+                "toll": 11,
+                "distance": 35.95,
+                "duration": 52.9,
+                "cost": 27.44
+            },
+            {
+                "toll": 8,
+                "distance": 58.62,
+                "duration": 10.17,
+                "cost": 26.2
+            },
+            null
+        ]
     ]
-]
+}

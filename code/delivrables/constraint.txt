@@ -1,14 +1,14 @@
-route
+route (check)
 -payante(€)
 -distance(km)
 -durée(min)
 -cout(essene)
 
-camion
+camion()
 -besoin de rentrer au depot
 -plusieurs
 -comment stocker
 
-lieu
+lieu ()
 -ravitaillement
 -oraire d'ouverture
