@@ -2,18 +2,22 @@
 
 ## Table of Contents
 
-- [I) Introduction](#i-introduction)
-  - [I.1. Context](#i1-context)
-  - [I.2. Problem Context](#i2-problem-context)
-  - [I.3. Problem Statement](#i3-problem-statement)
-    - [I.3.a. Basic Constraints](#i3a-basic-constraints)
-    - [I.3.b. Additional Constraints](#i3b-additional-constraints)
-- [II) Type of Problem](#ii-type-of-problem)
-- [III) Mathematical Modeling](#iii-mathematical-modeling)
-- [IV) Resolution Method (Algorithmic Approach)](#iv-resolution-method-algorithmic-approach)
-- [V) Experimental Study and Results](#v-experimental-study-and-results)
-- [VI) Discussion and Limitations](#vi-discussion-and-limitations)
-- [VII) Conclusion and Perspectives](#vii-conclusion-and-perspectives)
+* [I) Introduction](#i-introduction)
+  * [I.1. Context](#i1-context)
+  * [I.2. Problem Context](#i2-problem-context)
+  * [I.3. Problem Statement](#i3-problem-statement)
+    * [I.3.a. Basic Constraints](#i3a-basic-constraints)
+    * [I.3.b. Additional Constraints](#i3b-additional-constraints)
+* [II) Type of Problem](#ii-type-of-problem)
+  * [II.1. Mathematical Modeling](#ii1-mathematical-modeling)
+  * [II.2. Proof of NP membership of the problems](#ii2-proof-of-np-membership-of-the-problems)
+    * [II.2.a. The decision problem is NP?](#ii2a-the-decision-problem-is-np)
+    * [II.2.b. The optimisation problem is NP?](#ii2b-the-optimisation-problem-is-np)
+  * [II.3. Proof of NP-Hard membership of the problems](#ii3-proof-of-np-hard-membership-of-the-problems)
+    * [II.3.a. The decision problem is NP-Complete?](#ii3a-the-decision-problem-is-np-complete)
+    * [II.2.b. The optimisation problem is NP-Hard?](#ii2b-the-optimisation-problem-is-np-hard)
+* [III) Mathematical Modeling](#iii-mathematical-modeling)
+
 
 
 ---
@@ -38,101 +42,152 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 
 #### I.3.b. Additional Constraints
 * Multiple trucks (*k* trucks) available simultaneously
-
   * Each truck transport a type of package
   * Each truck have a capacity define
   * Each truck have a fuel modifier
-
 * Constant travel time
-
   * Matrix of variable distances per time slot
-
 ---
-
 ## II) Type of Problem
-### II.1.Mathematical Modeling
+### II.1. Mathematical Modeling
 #### <u>Optimisation problem:</u>
 
-Input:<br>
-* $T \in \mathbb{N}^\mathbb{N}$ list of trucks where each value indicating its class and allowed object types.
-* $c$ the constraint chose (distance, duration, price) 
-* $G = \left\{ V, E,\omega\right\}$ a graph with <br>
-  * $V$ the set of vertices such as <br>
-$\forall v ∈ V, v = (t, p, w)$ with
-    * $t$ : type of node, either "stock", "shop", or "depot"  
-    * $p$ : list of products available or requested at the node  
-    * $w$ : time window for the node, represented as (start_time, end_time)
+Input:
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
+* $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
+  * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
-  * $\omega \in (E \times c)$
-    * if $c = p$ it return the toll associate to the edge  
-    * if $c = dis$ it return distance of the edge
-    * if $c = dur$ it return expected duration to traverse the edge <br>
+  * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
+  * $\phi: V \to \mathbb{N}^\mathbb{E}$, with $\mathbb{E}$ the set of sellable products — returns shop needs.
 <br>
 
 Output:<br><br>
-The list of each truck path in fonction of the constraint ($\in V^{\mathbb N ^{\mathbb N}}$)
+Let $VL$ be the set of feasible lists of cycles such that
+$$
+\forall v \in V, \forall e \in \mathbb{E}, \quad \phi(v)[e] = \sum_{n=0}^{|T|} l[n][1][e].
+$$
+Let $l^*$ such as 
+$$
+l^* =\min_{l \in VL} \max_n |l[n]|.
+$$
+Return the element $l^*$ 
 
 #### <u>Decision problem assocaite:</u>
 
-Input:<br>
-* $B \in \mathbb{N}^\mathbb{N}$ list of trucks where each value indicating its class and allowed object types.
-* $c$ the constraint chose (distance, duration, price)
-* $G = \left\{ V, E,\omega\right\}$ a graph with <br>
-  * $V$ the set of vertices such as <br>
-$\forall v ∈ V, v = (t, p, w)$ with
-    * $t$ : type of node, either "stock", "shop", or "depot"  
-    * $p$ : list of products available or requested at the node  
-    * $w$ : time window for the node, represented as (start_time, end_time)
+Input:
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
+* $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
+  * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
-  * $\omega \in (E \times c)$
-    * if $c = p$ it return the toll associate to the edge  
-    * if $c = dis$ it return distance of the edge
-    * if $c = dur$ it return expected duration to traverse the edge <br>
-
+  * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
+  * $\phi: V \to \mathbb{N}^\mathbb{E}$, with $\mathbb{E}$ the set of sellable products — returns shop needs.
 * $K$ the thresold of our problem
-<br>
 
 Output:<br><br>
-All the truck are come back
-* and the sum of the distance of all bus path is less than $K$
-* before the duration $K$ if c is duration
-* and paid less than $K$ if c is price 
-
-
-### II.2.Proof of the dificulties
-
-The Decision problem is NP?
-
-We take a certificate C which is the list of each truck paths.
-
-**DEBUT**</br>
-INITIALISATION:</br>
-$saw =$ [], $c = constraint$
-
-LOOP START $i=0$ FROM $0$ TO $len(C)$
-* $total = 0$
-* LOOP START $y=0$ FROM $0$ TO $len(C[i])$
-  * CONDITION : $C[i][y]$ not in saw ?
-    * YES → Add $C[i][y]$ in saw
-    * NO → Pass
-  * CONDITION : ($C[i][y]$, $C[i][y+1]$) in E ?
-    * YES → $total$ += $\omega((C[i][y], C[i][y+1]),c)$
-    * NO → RETURN False
-  * CONDITION : C[i][0] == C[i][-1] and total <= k ?
-    * YES → $total$ += $\omega((C[i][y], C[i][y+1]),c)$
-    * NO → RETURN False
-* LOOP END
-
-LOOP END</br>
-CONDITION : len(already_saw)-1 == len(V) ?
-* Oui → Retourner True
-* Non → Retourner False
-
-**FIN**</br></br></br>
-
-
+Return if it exist a list $l$ ($l \in (V, \mathbb{N}^{E})^{\mathbb{N}^{\mathbb{N}}}$) such as
+$$\forall v \in V, \forall e \in \mathbb{E}, \phi(v)[e] = \sum_{n \in [0,|T|]} l[n][1][e]$$
+$$ \max_n |l[n]| \leq K$$
+<br>
 
 ---
+
+### II.2. Proof of NP membership of the problems
+
+#### II.2.a. The decision problem is NP?
+We take a certificate C which is the list of each truck paths.
+<pre>
+INITIALISATION :
+delivery = [0] × len(V) × len(ℰ)
+time = []
+
+LOOP START i FROM 0 TO len(C)
+    total = 0
+    max_volume = T[i][1]
+    max_weight = T[i][2]
+
+    LOOP START y FROM 0 TO len(C[i])
+        CONDITION : (C[i][0][y], C[i][0][y+1]) ∈ E ?
+            YES →
+                total += ω((C[i][0][y], C[i][0][y+1]), total)
+                LOOP START z FROM 0 TO len(C[i][1])
+                        CONDITION : z ∉ T[i][0] ?
+                            YES → RETURN False
+                            NO → PASS
+                    delivery[y][z] += C[i][1][z]
+                    max_volume -= C[i][1][z] * z(0)
+                    max_weight -= C[i][1][z] * z(1)
+                LOOP END
+            NO → RETURN False
+
+        CONDITION : C[i][1][0] ≠ C[i][1][-1] ?
+            YES → RETURN False
+            NO → PASS
+
+    LOOP END
+
+    CONDITION : max_volume ≤ 0 and max_weight ≤ 0 ?
+        YES → RETURN False
+        NO → PASS
+
+    time.APPEND(total)
+
+LOOP END
+
+CONDITION : max(time) ≤ K ?
+    YES → RETURN False
+    NO → PASS
+
+LOOP START v FROM 0 TO len(V)
+    LOOP START n FROM 0 TO len(ℰ)
+        CONDITION : delivery[v][n] ≠ φ(V)[n] ?
+            YES → RETURN False
+            NO → PASS
+    LOOP END
+LOOP END
+
+RETURN True
+</pre>
+
+
+This algorigram verify:
+* All trucks complete a **full cycle**:  
+  * They do not give more than they transport.  
+  * They only carry what they are able to.
+* All shops receive **exactly the products** they need.
+* All deliveries are completed in **less than or equal to \(K\) time**.
+
+Moreover, the algorithm has an asymptotic complexity of $$O(|T| \times |V| \times |\mathbb{E}|)$$
+
+Therefore, this algorithm verifies whether a given certificate is a valid solution to the problem in polynomial time.
+
+Hence, this problem belongs to the class NP.
+
+
+#### II.2.b. The optimisation problem is NP?
+We take a certificate C which is the list of each truck paths.
+
+to prove $C =\min_{l \in VL} \max_n |l[n]|$ you need to calculate all the l in Vl so you need to calculate all the potential solution and it's not calculable in polynomial time.
+
+So the optimisation problem is not in NP.
+
+---
+
+### II.3. Proof of NP-Hard membership of the problems
+
+#### II.3.a. The decision problem is NP-Complete?
+
+
+#### II.2.b. The optimisation problem is NP-Hard?
+---
+
+
+
+
+
+
+
+
+
 
 ## III) data format
 | Nœud | Type  | Ressources | Horaire d’ouverture | Connexions vers… |
