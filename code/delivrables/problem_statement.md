@@ -1,4 +1,4 @@
-# <center>Modeling</center>
+# <center>Truck plan</center>
 
 ## Table of Contents
 
@@ -33,15 +33,19 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 ### I.3. Problem Statement
 
 #### I.3.a. Basic Constraints
-- Solve large-scale instances (several thousand cities).  
-- Conduct a statistical study of the algorithm’s experimental performance.
+* Solve large-scale instances (several thousand cities).  
+* Conduct a statistical study of the algorithm’s experimental performance.
 
 #### I.3.b. Additional Constraints
-- Delivery time slot for each node (no deliveries beyond the time slot; waiting allowed).  
-- Multiple trucks (*k* trucks) available simultaneously — allocation of deliveries and minimization of the latest return time.  
-- Stock or collection points for specific items.  
-- Travel time varying with the time.  
-- Different types of trucks, with certain items restricted to specific vehicle types.
+* Multiple trucks (*k* trucks) available simultaneously
+
+  * Each truck transport a type of package
+  * Each truck have a capacity define
+  * Each truck have a fuel modifier
+
+* Constant travel time
+
+  * Matrix of variable distances per time slot
 
 ---
 
@@ -50,7 +54,7 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 #### <u>Optimisation problem:</u>
 
 Input:<br>
-* $B \in \mathbb{N}^\mathbb{N}$ list of trucks where each value indicating its class and allowed object types.
+* $T \in \mathbb{N}^\mathbb{N}$ list of trucks where each value indicating its class and allowed object types.
 * $c$ the constraint chose (distance, duration, price) 
 * $G = \left\{ V, E,\omega\right\}$ a graph with <br>
   * $V$ the set of vertices such as <br>

@@ -242,7 +242,7 @@ def draw_graph_from_matrix(matrix):
 
 #text
 if __name__ == "__main__":
-    create_test(5)
+    #create_test(5)
     memo = load_matrix(".\\media\\test\\test_5.json")
     print(memo["node_state"],"\n")
     print(memo["matrix"])
