@@ -152,19 +152,35 @@ def create_random_conected_matrix(size):
             return matrix
 
 #create the characteristic
-def create_node_state(size):
-    product = ["metal","wood","meat", "honey"]
-    ans =  []
+import random as r
+
+def create_node_state(size, products):
+    stocked = set()
+    ans = []
     for i in range(size):
         hour_start = r.randint(8, 20)
         minute_start = r.choice([0, 15, 30, 45])
         hour_end = r.randint(hour_start + 1, 23)
         minute_end = r.choice([0, 15, 30, 45])
-        ans.append({"state": (r.choice(["stock","shop"]),r.choice(product)),"schedule":{"start":(hour_start,minute_start),"end":(hour_end,minute_end)}})
+        state = r.choice(["stock", "shop"])
+        p = r.choice(products)
+        if state == "stock":
+            stocked.add(p)
+        ans.append({
+            "state": (state, p),
+            "schedule": {"start": (hour_start, minute_start), "end": (hour_end, minute_end)}
+        })
+    depot_index = r.randint(0, size - 1)
+    remaining_products = [p for p in products if p not in stocked]
+    ans[depot_index] = {
+        "state": ("depot", remaining_products),
+        "schedule": {"start": (0, 0), "end": (24, 0)}
+    }
     return ans
 
+
 #save a test after create it
-def create_test(size):
+def create_test(size, product = ["metal","wood","meat", "honey"]):
     """
     Create a connected random graph and save it to a JSON file.
 
@@ -175,7 +191,7 @@ def create_test(size):
         bool: True if saved successfully, False otherwise.
     """
     mat = create_random_conected_matrix(size)
-    state = create_node_state(size)
+    state = create_node_state(size,product)
     memo = {"node_state":state,"matrix":mat}
     path = memory + f"\\test_{size}.json"
     status = save_matrix(path, memo)

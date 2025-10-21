@@ -2,33 +2,36 @@
     "node_state": [
         {
             "state": [
-                "stock",
+                "shop",
                 "wood"
             ],
             "schedule": {
                 "start": [
-                    9,
+                    12,
                     15
                 ],
                 "end": [
                     22,
-                    30
+                    45
                 ]
             }
         },
         {
             "state": [
-                "stock",
-                "meat"
+                "depot",
+                [
+                    "metal",
+                    "wood"
+                ]
             ],
             "schedule": {
                 "start": [
-                    10,
-                    45
+                    0,
+                    0
                 ],
                 "end": [
-                    23,
-                    30
+                    24,
+                    0
                 ]
             }
         },
@@ -39,44 +42,44 @@
             ],
             "schedule": {
                 "start": [
-                    13,
-                    45
-                ],
-                "end": [
-                    17,
-                    45
-                ]
-            }
-        },
-        {
-            "state": [
-                "shop",
-                "honey"
-            ],
-            "schedule": {
-                "start": [
-                    11,
-                    15
+                    12,
+                    0
                 ],
                 "end": [
                     15,
-                    0
+                    15
                 ]
             }
         },
         {
             "state": [
                 "stock",
-                "wood"
+                "honey"
             ],
             "schedule": {
                 "start": [
-                    10,
-                    15
+                    19,
+                    0
                 ],
                 "end": [
-                    12,
+                    21,
                     45
+                ]
+            }
+        },
+        {
+            "state": [
+                "stock",
+                "honey"
+            ],
+            "schedule": {
+                "start": [
+                    9,
+                    30
+                ],
+                "end": [
+                    15,
+                    0
                 ]
             }
         }
@@ -85,95 +88,105 @@
         [
             null,
             {
-                "toll": 17,
-                "distance": 88.19,
-                "duration": 21.72,
-                "cost": 48.44
+                "toll": 8,
+                "distance": 38.17,
+                "duration": 35.54,
+                "cost": 26.19
             },
             null,
             {
-                "toll": 10,
-                "distance": 50.27,
-                "duration": 55.54,
-                "cost": 36.24
+                "toll": 6,
+                "distance": 47.54,
+                "duration": 13.37,
+                "cost": 26.44
+            },
+            null
+        ],
+        [
+            {
+                "toll": 8,
+                "distance": 41.34,
+                "duration": 37.35,
+                "cost": 23.74
+            },
+            null,
+            {
+                "toll": 18,
+                "distance": 36.67,
+                "duration": 109.65,
+                "cost": 40.26
+            },
+            null,
+            {
+                "toll": 12,
+                "distance": 92.13,
+                "duration": 20.09,
+                "cost": 50.08
+            }
+        ],
+        [
+            null,
+            {
+                "toll": 18,
+                "distance": 37.12,
+                "duration": 102.63,
+                "cost": 37.06
+            },
+            null,
+            {
+                "toll": 7,
+                "distance": 49.11,
+                "duration": 67.5,
+                "cost": 38.06
             },
             {
-                "toll": 2,
-                "distance": 76.48,
-                "duration": 119.71,
-                "cost": 62.18
+                "toll": 7,
+                "distance": 38.75,
+                "duration": 39.02,
+                "cost": 27.18
             }
         ],
         [
             {
-                "toll": 17,
-                "distance": 80.39,
-                "duration": 21.53,
-                "cost": 46.11
+                "toll": 6,
+                "distance": 46.23,
+                "duration": 13.96,
+                "cost": 26.13
             },
             null,
-            null,
-            null,
             {
-                "toll": 16,
-                "distance": 59.31,
-                "duration": 114.32,
-                "cost": 52.52
-            }
-        ],
-        [
-            null,
-            null,
-            null,
+                "toll": 7,
+                "distance": 45.81,
+                "duration": 71.91,
+                "cost": 37.92
+            },
             null,
             {
                 "toll": 11,
-                "distance": 38.48,
-                "duration": 50.4,
-                "cost": 29.32
+                "distance": 22.61,
+                "duration": 119.57,
+                "cost": 35.22
             }
         ],
         [
-            {
-                "toll": 10,
-                "distance": 54.34,
-                "duration": 61.05,
-                "cost": 33.68
-            },
-            null,
-            null,
             null,
             {
-                "toll": 8,
-                "distance": 53.47,
-                "duration": 11.25,
-                "cost": 28.98
-            }
-        ],
-        [
-            {
-                "toll": 2,
-                "distance": 75.68,
-                "duration": 116.74,
-                "cost": 65.33
+                "toll": 12,
+                "distance": 85.67,
+                "duration": 18.67,
+                "cost": 47.21
             },
             {
-                "toll": 16,
-                "distance": 61.8,
-                "duration": 108.57,
-                "cost": 47.88
+                "toll": 7,
+                "distance": 38.56,
+                "duration": 40.46,
+                "cost": 28.15
             },
             {
                 "toll": 11,
-                "distance": 35.95,
-                "duration": 52.9,
-                "cost": 27.44
-            },
-            {
-                "toll": 8,
-                "distance": 58.62,
-                "duration": 10.17,
-                "cost": 26.2
+                "distance": 20.78,
+                "duration": 116.95,
+                "cost": 35.65
             },
             null
         ]
