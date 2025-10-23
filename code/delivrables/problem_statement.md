@@ -16,7 +16,9 @@
   * [II.3. Proof of NP-Hard membership of the problems](#ii3-proof-of-np-hard-membership-of-the-problems)
     * [II.3.a. The decision problem is NP-Complete?](#ii3a-the-decision-problem-is-np-complete)
     * [II.2.b. The optimisation problem is NP-Hard?](#ii2b-the-optimisation-problem-is-np-hard)
-* [III) Mathematical Modeling](#iii-mathematical-modeling)
+* [III) Data format](#iii-data-format)
+* [IV) What are the next steps?](#iv-what-are-the-next-steps)
+* [V) Sources](#v-sources)
 
 
 
@@ -50,15 +52,17 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 ---
 ## II) Type of Problem
 ### II.1. Mathematical Modeling
-#### <u>Optimisation problem:</u>
+#### <u>Optimisation problem ($\Pi_O$):</u>
 
 Input:
 * $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
+* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
   * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
-  * $\phi: V \to \mathbb{N}^\mathbb{E}$, with $\mathbb{E}$ the set of sellable products — returns shop needs.
+  * $\phi: V \to \mathbb{N}^{|\mathbb{E}|}$ returns shop needs.
+
 <br>
 
 Output:<br><br>
@@ -72,15 +76,16 @@ l^* =\min_{l \in VL} \max_n |l[n]|.
 $$
 Return the element $l^*$ 
 
-#### <u>Decision problem assocaite:</u>
+#### <u>Decision problem assocaite ($\Pi_D$):</u>
 
 Input:
 * $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
+* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
   * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
-  * $\phi: V \to \mathbb{N}^\mathbb{E}$, with $\mathbb{E}$ the set of sellable products — returns shop needs.
+  * $\phi: V \to \mathbb{N}^\mathbb{E}$ returns shop needs.
 * $K$ the thresold of our problem
 
 Output:<br><br>
@@ -166,36 +171,222 @@ Hence, this problem belongs to the class NP.
 #### II.2.b. The optimisation problem is NP?
 We take a certificate C which is the list of each truck paths.
 
-to prove $C =\min_{l \in VL} \max_n |l[n]|$ you need to calculate all the l in Vl so you need to calculate all the potential solution and it's not calculable in polynomial time.
+to prove $C =\min_{l \in VL} \max_n |l[n]|$ you need to calculate all the $l$ in $VL$ so you need to calculate all the potential solution and it's not calculable in polynomial time.
 
 So the optimisation problem is not in NP.
 
 ---
 
 ### II.3. Proof of NP-Hard membership of the problems
-
 #### II.3.a. The decision problem is NP-Complete?
+##### remind:
+- The Hamiltonian cycle decision problem is in NP-Complete so it's also in NP.
+
+</br>
+The Hamiltonian cycle decision problem is:</br>
+Input:
+
+* $H = \left\{ V_H, E_H\right\}$ a graph with
+  * $V_H$ the set of vertices,
+  * $E_H \in {V_H}^2$ the set of edges,
+<br>
+
+Output:<br>
+ * Return if we can find an Hamiltonian cycle in G.<br><br>
+
+##### demonstration:
 
 
-#### II.2.b. The optimisation problem is NP-Hard?
+We construct, in polynomial time, an instance $I = (T,\mathbb{E},G,K)$ of $\Pi_D$ such that
+
+$$
+\text{H has a Hamiltonian cycle} \Leftrightarrow
+\text{I has a feasible solution}
+$$
+Let:
+$$
+\begin{array}{rcl}
+T &=&[[0],|V_H|,|V_H|]\\
+\mathbb{E} &=&[(1,1)]\\
+G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
+&& V = V_H \\
+&& E = E_H \\
+&& \omega = 1 \\
+&& \phi = [1] \\
+K &=&|V_H|\\
+\end{array}
+$$
+
+with simple words:
+* each vertex requires exactly one product,
+* the truck can carry all the products at once,
+* and each edge has a constant travel time of 1
+
+</br>
+
+$(\Rightarrow)$ If $H$ has a Hamiltonian cycle, then 
+$I$ has a valid solution</br>
+
+Let $ C_H = (v_1, v_2, \dots, v_{|V|}, v_1) $ be a Hamiltonian cycle in $ H $.
+
+Since $ E = E_H $, this cycle is also feasible in $ G $.
+Let the truck follow exactly this route.
+
+At each visited vertex $ v_i $, it delivers the single required product:
+$ \phi(v_i) = [1] $.
+
+The total length of the tour is:
+$ |C_H| = |V| $.
+
+Since $ K = |V| $, we have:
+$ \max_n |l[n]| \leq K $.
+
+Thus, a feasible delivery list $ l $ exists for $ I $.
+
 ---
 
+$(\Leftarrow)$ If $ I $ has a feasible solution, then $ H $ has a Hamiltonian cycle.
+
+Suppose that $ I $ admits a feasible solution
+$ l = [l_1] $,
+since there is only one truck.
+
+Then, for each vertex $ v \in V $, the delivery constraint:
+$ \forall v \in V, \quad \phi(v) = \sum_n l_n[1] $
+implies that each vertex receives one product.
+
+Since the truck can carry all the items and the travel cost of each edge is $ 1 $,
+the route $ l_1[0] $ must visit all vertices exactly once in order to satisfy all deliveries without exceeding
+$ K = |V| $.
+
+Therefore,
+$ l_1[0] $
+corresponds to a Hamiltonian cycle in $ H $.
+
+So $\Pi_D$ is in NP-Complete.
+
+---
+
+#### II.2.b. The optimisation problem is NP-Hard?
+
+##### remind:
+- The Hamiltonian cycle decision problem is in NP-Complete so it's also in NP.
+
+</br>
+The Hamiltonian cycle decision problem is:</br>
+Input:
+
+* $H = \left\{ V_H, E_H\right\}$ a graph with
+  * $V_H$ the set of vertices,
+  * $E_H \in {V_H}^2$ the set of edges,
+<br>
+
+Output:<br>
+ * Return if we can find an Hamiltonian cycle in G.
+
+##### demonstration:
+It’s almost the same proof as $\Pi_D$.<br>
+We construct, in polynomial time, an instance $I = (T,\mathbb{E},G)$ of $\Pi_O$ such that
+
+$$
+\text{H has a Hamiltonian cycle} \Leftrightarrow
+\text{I has a feasible solution}
+$$
+Let:
+$$
+\begin{array}{rcl}
+T &=&[[0],|V_H|,|V_H|]\\
+\mathbb{E} &=&[(1,1)]\\
+G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
+&& V = V_H \\
+&& E = E_H \\
+&& \omega = 1 \\
+&& \phi = [1] \\
+\end{array}
+$$
+
+with simple words:
+* each vertex requires exactly one product,
+* the truck can carry all the products at once,
+* and each edge has a constant travel time of 1
 
 
+$(\Rightarrow)$ If $H$ has a Hamiltonian cycle, the solution $l$ of $I$ in $\Pi_O$ respect $l[0] = |V|$</br>
+
+Let $ C_H = (v_1, v_2, \dots, v_{|V|}, v_1) $ be a Hamiltonian cycle in $ H $.
+
+Since $ E = E_H $, this cycle is also feasible in $ G $.
+Let the truck follow exactly this route.
+
+At each visited vertex $ v_i $, it delivers the single required product:
+$ \phi(v_i) = [1] $.
+
+The total length of the tour is:
+$ |C_H| = |V| $.
+
+But as The truck must visit every vertex $v \in V$ at least once to satisfy $\phi (v) = [1]$.
+
+So the lenght of the cycle is a least $|V|+1$.
+
+Therefore, the number of edges used is at least $|V|$, and this number is equal to the weight of the path (since each edge has a weight of 1).
+
+So $ |C_H| \geq |V|$
+
+The condition is respected.
+
+$(\Leftarrow)$ If the solution $l$ of $I$ in $\Pi_O$ respect $l[0] = |V|$, $H$ has a Hamiltonian cycle.
+
+Suppose that $ I $ admits a feasible solution
+$ l = [l_1] $,
+since there is only one truck.
+
+since, for each vertices v ∈ V, the delivery constraint:
+$$\forall v \in V, \phi (v) = 1$$
+
+that means that each vertices receve exactly 1 product.
+
+As the cost of each edge is 1 and the truck can transport all the stuff at once.
+
+So the lenght of the cycle is a least $|V|+1$.
+
+Therefore, the number of edges used is at least $|V|$, and this number is equal to the weight of the path (since each edge has a weight of 1).
+
+So if the length of $l[0] = |V|$, it exist an hamiltonian cycle in $H$
+
+To conclude $\Pi_O$ is in NP-Hard.
 
 
+Therefore,
+$ l_1[0] $
+corresponds to a Hamiltonian cycle in $ H $.
 
+So $\Pi_O$ is in NP-Hard.
 
-
-
-
+---
 ## III) data format
-| Nœud | Type  | Ressources | Horaire d’ouverture | Connexions vers… |
-|------|-------|------------|-------------------|-----------------|
-| 0    | shop  | wood       | 12:15 – 22:45     | 1 → Toll 8, 38.17 km, 35.54 min, Cost 26.19<br>3 → Toll 6, 47.54 km, 13.37 min, Cost 26.44 |
-| 1    | depot | metal, wood| 00:00 – 24:00     | 0 → Toll 8, 41.34 km, 37.35 min, Cost 23.74<br>2 → Toll 18, 36.67 km, 109.65 min, Cost 40.26<br>4 → Toll 12, 92.13 km, 20.09 min, Cost 50.08 |
-| 2    | shop  | metal      | 12:00 – 15:15     | 1 → Toll 18, 37.12 km, 102.63 min, Cost 37.06<br>3 → Toll 7, 49.11 km, 67.50 min, Cost 38.06<br>4 → Toll 7, 38.75 km, 39.02 min, Cost 27.18 |
-| 3    | stock | honey      | 19:00 – 21:45     | 0 → Toll 6, 46.23 km, 13.96 min, Cost 26.13<br>2 → Toll 7, 45.81 km, 71.91 min, Cost 37.92<br>4 → Toll 11, 22.61 km, 119.57 min, Cost 35.22 |
-| 4    | stock | honey      | 09:30 – 15:00     | 1 → Toll 12, 85.67 km, 18.67 min, Cost 47.21<br>2 → Toll 7, 38.56 km, 40.46 min, Cost 28.15<br>3 → Toll 11, 20.78 km, 116.95 min, Cost 35.65 |
 
-The cost is the price of gaz, calculated with distance and the duration.
+As seen in the mathematical problem modelisation, we need to have acces to 3 datas.
+
+* a list of trucks with their caracteristic
+* a list of objects caractéristic
+* the graph G
+
+The two first point will be represent by a list of object.</br>
+The graph will be represent by a adjacency matrix.
+
+The answer is the list of the truck paths with the depot in each node.
+
+We can represent the answer like (int,int list) list list.
+
+---
+## IV) What are the next steps?
+
+* search the good way to solve the problem
+* create the objects
+* create a test generator
+* implement it
+* make a fonction which verify if the solution of the algorythm can  be considered or not.
+---
+## V) Sources
+Hamiltonian cycle is in NP demonstration:</br>
+https://cs.indstate.edu/~bdhome/HamCycle.pdf
