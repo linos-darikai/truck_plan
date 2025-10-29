@@ -367,9 +367,19 @@ So $\Pi_O$ is in NP-Hard.
 
 As seen in the mathematical problem modelisation, we need to have acces to 3 datas.
 
-* a list of trucks with their caracteristic
-* a list of objects caractéristic
-* the graph G
+1. A list of `Truck` objects. Each truck has:
+    - `truck_type` (str): the name/type of the truck,
+    - `allowed_products` (set of str): names of products the truck is allowed to carry,
+    - `max_volume` (int): maximum volume the truck can carry,
+    - `max_weight` (int): maximum weight the truck can carry,
+    - `cargo` (dict of Product -> int): dictionary mapping products to their quantities in the truck.
+
+2. A list of `Product` objects. Each product has:
+    - `name` (str): name of the product,
+    - `volume` (int): volume of one unit of the product,
+    - `weight` (int): weight of one unit of the product.
+
+3. the graph G
 
 The two first point will be represent by a list of object.</br>
 The graph will be represent by a adjacency matrix.
@@ -388,5 +398,6 @@ We can represent the answer like (int,int list) list list.
 * make a fonction which verify if the solution of the algorythm can  be considered or not.
 ---
 ## V) Sources
-Hamiltonian cycle is in NP demonstration:</br>
-https://cs.indstate.edu/~bdhome/HamCycle.pdf
+[Hamiltonian cycle is in NP demonstration](#https://cs.indstate.edu/~bdhome/HamCycle.pdf)
+
+[collection namedtuple](#https://docs.python.org/3/library/collections.html#collections.namedtuple)
