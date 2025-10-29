@@ -4,6 +4,7 @@ from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
+import dill
 
 # region TRUCK MANAGEMENT
 class Truck:
@@ -74,6 +75,7 @@ def add_product_to_list(products_dict, name, volume, weight):
 
 
 # region GRAPH & TIME FUNCTION
+#creation
 time_line = 24
 def create_time_function(period, n_terms = 4, amp_range = (1,5)):
     """
@@ -127,7 +129,7 @@ def create_oriented_connected_matrix(n_nodes=5, period = time_line):
             graph[i][j] = create_time_function(period)
     return graph
 
-
+#print
 def plot_graph_functions(graph, period = time_line):
     """Plot all time-dependent edge functions of the graph."""
     n_nodes = len(graph)
@@ -179,6 +181,18 @@ def plot_graph_image(graph, t = None):
     nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=1000, arrowsize=20)
     if edge_labels:
         nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+#save
+def save_graph_pickle(graph, path):
+    """Save the graph object to a file using pickle."""
+    with open(path, "wb") as f:
+        dill.dump(graph, f)
+
+def load_graph_pickle(path):
+    """Load the graph object from a pickle file."""
+    with open(path, "rb") as f:
+        return dill.load(f)
+
 #endregion
 
 
@@ -226,6 +240,13 @@ if __name__ == "__main__":
             print(f"Weight {i} → {j} = {round(f(t_test), 2)}")
 
     # Plot all the time-dependent weights
+    plot_graph_functions(G)
+    plot_graph_image(G)
+    plt.show()
+
+    save_graph_pickle(G, r"code\media\test\graph_7")
+    G = load_graph_pickle(r"code\media\test\graph_7")
+
     plot_graph_functions(G)
     plot_graph_image(G)
     plt.show()
