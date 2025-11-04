@@ -60,6 +60,150 @@ class Truck:
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
 # endregion
+class Graph:
+    def __init__(self):
+        self.time_line = 24
+        self.graph = None
+        pass
+    def __str__(self):
+        """
+        Display the graph into string
+        """
+        return
+    def load_from_csv(self):
+        """
+        This is a function that is to load the graph from the CSV from the website 
+        we need to model that situation into our graph and be able to load.
+        Check the data from CSV
+        """
+        return
+    
+    def create_time_function(self, period, n_terms = 4, amp_range = (1,5)):
+        """
+        Create a positive periodic time function using cosine components:
+        f(t) = a0 + Σ a_i * cos(w_i t + phi_i)
+        """
+        a_coeffs = [r.uniform(*amp_range) for _ in range(n_terms)]
+        k_values = [r.uniform(1, 5) for _ in range(n_terms)]
+        phi_values = [r.uniform(0, 2 * np.pi) for _ in range(n_terms)]
+        w_values = [2 * np.pi * k / period for k in k_values]
+        offset = sum(a_coeffs) + r.uniform(1.0, 5.0)
+
+        def f(t):
+            val = offset
+            for a, w, phi in zip(a_coeffs, w_values, phi_values):
+                val += a * np.cos(w * t + phi)
+            return val
+        return f
+
+    def is_strongly_connected(self):
+        """Check if the directed graph is strongly connected."""
+        def bfs(start):
+            visited = [False]*len(self.graph)
+            queue = deque([start])
+            visited[start]=True
+            while queue:
+                node = queue.popleft()
+                for neighbor in self.graph[node]:
+                    if neighbor < start:
+                        return True
+                    if not visited[neighbor]:
+                        visited[neighbor]=True
+                        queue.append(neighbor)
+            return all(visited)
+
+        for i in range(len(self.graph)):
+            if not bfs(i):
+                return False
+        return True
+
+    def create_connected_matrix(self, n_nodes=5, period = 24):
+        """Generate a random strongly connected directed graph with time-dependent weights."""
+        graph = [{} for _ in range(n_nodes)]
+        for i in range(n_nodes):
+            for j in range(n_nodes):
+                if i != j and r.random()<0.6:
+                    graph[i][j] = self.create_time_function(period)
+        while not self.is_strongly_connected(graph):
+            i, j = r.sample(range(n_nodes), 2)
+            if j not in graph[i]:
+                graph[i][j] = self.create_time_function(period)
+        self.graph = graph
+        return graph
+
+    #print
+    def plot_graph_functions(self, period = 24):
+        """Plot all time-dependent edge functions of the graph."""
+        n_nodes = len(self.graph)
+        t_values = np.linspace(0, period, 200)
+
+        fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
+
+        # Ensure axes is 2D array for consistent indexing
+        if n_nodes == 1:
+            axes = np.array([[axes]])
+        elif axes.ndim == 1:
+            axes = axes.reshape((n_nodes, n_nodes))
+
+        for i in range(n_nodes):
+            for j in range(n_nodes):
+                ax = axes[i, j]
+                if i == j or j not in self.graph[i]:
+                    y_values = np.zeros_like(t_values)
+                else:
+                    f = graph[i][j]
+                    y_values = np.array([f(t) for t in t_values])
+
+                ax.plot(t_values, y_values)
+                ax.set_title(f"{i} → {j}")
+                ax.set_ylim(0, max(y_values.max(), 1)*1.2)
+                ax.grid(True)
+
+        plt.tight_layout()
+
+    def plot_graph_image(self, t = None):
+        """Display the directed graph with optional edge labels at a specific time t."""
+        plt.figure("Graph Image")
+        G = nx.DiGraph()
+        n_nodes = len(self.graph)
+        
+        # Ajouter les nœuds
+        for i in range(n_nodes):
+            G.add_node(i)
+        
+        # Ajouter les arcs avec labels
+        edge_labels = {}
+        for i, neighbors in enumerate(self.graph):
+            for j, f in neighbors.items():
+                G.add_edge(i, j)
+                if t is not None:
+                    edge_labels[(i,j)] = f"{f(t):.1f}"
+
+        pos = nx.circular_layout(G)
+        nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=1000, arrowsize=20)
+        if edge_labels:
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+
+    #save
+    def save_graph_pickle(self, path):
+        """Save the graph object to a file using pickle."""
+        with open(path, "wb") as f:
+            dill.dump(self.graph, f)
+
+    def load_graph_pickle(self, path):
+        """Load the graph object from a pickle file."""
+        with open(path, "rb") as f:
+            return dill.load(f)
+
+
+
+
+
+
+
+
+
+
 
 
 # region PRODUCT MANAGEMENT
@@ -78,122 +222,7 @@ def add_product_to_list(products_dict, name, volume, weight, delivery_time):
 #creation
 #DEMAND MANAGEMENT  ISMISSING-----------------------------------
 
-time_line = 24
-def create_time_function(period, n_terms = 4, amp_range = (1,5)):
-    """
-    Create a positive periodic time function using cosine components:
-    f(t) = a0 + Σ a_i * cos(w_i t + phi_i)
-    """
-    a_coeffs = [r.uniform(*amp_range) for _ in range(n_terms)]
-    k_values = [r.uniform(1, 5) for _ in range(n_terms)]
-    phi_values = [r.uniform(0, 2 * np.pi) for _ in range(n_terms)]
-    w_values = [2 * np.pi * k / period for k in k_values]
-    offset = sum(a_coeffs) + r.uniform(1.0, 5.0)
 
-    def f(t):
-        val = offset
-        for a, w, phi in zip(a_coeffs, w_values, phi_values):
-            val += a * np.cos(w * t + phi)
-        return val
-    return f
-
-def is_strongly_connected(graph):
-    """Check if the directed graph is strongly connected."""
-    def bfs(start):
-        visited = [False]*len(graph)
-        queue = deque([start])
-        visited[start]=True
-        while queue:
-            node = queue.popleft()
-            for neighbor in graph[node]:
-                if neighbor < start:
-                    return True
-                if not visited[neighbor]:
-                    visited[neighbor]=True
-                    queue.append(neighbor)
-        return all(visited)
-
-    for i in range(len(graph)):
-        if not bfs(i):
-            return False
-    return True
-
-def create_oriented_connected_matrix(n_nodes=5, period = time_line):
-    """Generate a random strongly connected directed graph with time-dependent weights."""
-    graph = [{} for _ in range(n_nodes)]
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            if i != j and r.random()<0.6:
-                graph[i][j] = create_time_function(period)
-    while not is_strongly_connected(graph):
-        i, j = r.sample(range(n_nodes), 2)
-        if j not in graph[i]:
-            graph[i][j] = create_time_function(period)
-    return graph
-
-#print
-def plot_graph_functions(graph, period = time_line):
-    """Plot all time-dependent edge functions of the graph."""
-    n_nodes = len(graph)
-    t_values = np.linspace(0, period, 200)
-
-    fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
-
-    # Ensure axes is 2D array for consistent indexing
-    if n_nodes == 1:
-        axes = np.array([[axes]])
-    elif axes.ndim == 1:
-        axes = axes.reshape((n_nodes, n_nodes))
-
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            ax = axes[i, j]
-            if i == j or j not in graph[i]:
-                y_values = np.zeros_like(t_values)
-            else:
-                f = graph[i][j]
-                y_values = np.array([f(t) for t in t_values])
-
-            ax.plot(t_values, y_values)
-            ax.set_title(f"{i} → {j}")
-            ax.set_ylim(0, max(y_values.max(), 1)*1.2)
-            ax.grid(True)
-
-    plt.tight_layout()
-
-def plot_graph_image(graph, t = None):
-    """Display the directed graph with optional edge labels at a specific time t."""
-    plt.figure("Graph Image")
-    G = nx.DiGraph()
-    n_nodes = len(graph)
-    
-    # Ajouter les nœuds
-    for i in range(n_nodes):
-        G.add_node(i)
-    
-    # Ajouter les arcs avec labels
-    edge_labels = {}
-    for i, neighbors in enumerate(graph):
-        for j, f in neighbors.items():
-            G.add_edge(i, j)
-            if t is not None:
-                edge_labels[(i,j)] = f"{f(t):.1f}"
-
-    pos = nx.circular_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=1000, arrowsize=20)
-    if edge_labels:
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-
-#save
-def save_graph_pickle(graph, path):
-    """Save the graph object to a file using pickle."""
-    with open(path, "wb") as f:
-        dill.dump(graph, f)
-
-def load_graph_pickle(path):
-    """Load the graph object from a pickle file."""
-    with open(path, "rb") as f:
-        return dill.load(f)
 
 #endregion
 
