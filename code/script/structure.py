@@ -87,7 +87,7 @@ class Graph:
         k_values = [r.uniform(1, 5) for _ in range(n_terms)]
         phi_values = [r.uniform(0, 2 * np.pi) for _ in range(n_terms)]
         w_values = [2 * np.pi * k / period for k in k_values]
-        offset = sum(a_coeffs) + r.uniform(1.0, 5.0)
+        offset = sum(a_coeffs) + r.uniform(1.0, 5.0) #distance has to be accounted for here
 
         def f(t):
             val = offset
