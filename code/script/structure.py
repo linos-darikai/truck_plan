@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import dill
+import vrplib
 
 # region TRUCK MANAGEMENT
 class Truck:
@@ -60,6 +61,13 @@ class Truck:
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
 # endregion
+class Node:
+    def __init__(self, coordinates, weight, demand):
+        self.coordinates = coordinates
+        self.weight = weight
+        self.demand = demand
+
+        
 class Graph:
     def __init__(self):
         self.time_line = 24
@@ -70,12 +78,28 @@ class Graph:
         Display the graph into string
         """
         return
-    def load_from_csv(self):
+    def load_from_file(self, file_name):
         """
         This is a function that is to load the graph from the CSV from the website 
         we need to model that situation into our graph and be able to load.
         Check the data from CSV
         """
+        path = f"../media/instances/{file_name}"
+        instance = vrplib.read_instance(path)
+        n = len(instance['node_coord'])
+        graph = [[None for _ in range(n)] for _ in range(n)]
+
+        print(len(instance['node_coord']))
+        print(instance['demand'][0])
+        for i in range(len(instance['node_coord'])):
+            for k in range(len(instance['node_coord'] + 1)):
+                if i != k and not graph[i][k]:
+                    n_range = r.randint(0, 20)
+                    amp_range = r.uniform(0.1, 2.0)
+                    graph[i][k] = {0: self.create_time_function(period=24,n_terms=n_range), 1: instance['demand'][k]} # demand can be change into dictionary
+                else:
+                    graph[i][k] = None
+        self.graph = graph
         return
     
     def create_time_function(self, period, n_terms = 4, amp_range = (1,5)):
@@ -233,52 +257,5 @@ def add_product_to_list(products_dict, name, volume, weight, delivery_time):
 
 if __name__ == "__main__":
     # --- Products ---
-    products = {}
-    add_product_to_list(products, "Oak wood", volume=5, weight=8, delivery_time=1/6)
-    add_product_to_list(products, "Pine wood", volume=3, weight=5, delivery_time=1)
-    add_product_to_list(products, "Iron", volume=7, weight=10, delivery_time=1.5)
-    add_product_to_list(products, "White paint", volume=2, weight=3, delivery_time=0.5)
-    add_product_to_list(products, "Plaster", volume=4, weight=6, delivery_time=0.25)
-
-    # --- Trucks ---
-    heavy_duty_allowed = ["Oak wood", "Pine wood", "Iron"]
-    chemical_truck_allowed = ["White paint", "Plaster"]
-
-    truck1 = Truck("Heavy Duty", allowed_products=heavy_duty_allowed, max_volume=50, max_weight=60, modifier=1)
-    truck2 = Truck("Chemical Truck", allowed_products=chemical_truck_allowed, max_volume=40, max_weight=50, modifier=1.2)
-
-    try:
-        truck1.add_product(products["Oak wood"], quantity=3)
-        truck1.add_product(products["Pine wood"], quantity=2)
-        truck2.add_product(products["White paint"], quantity=4)
-    except ValueError as e:
-        print("Error:", e)
-
-    print("\nTruck 1 contents:")
-    print(truck1)
-    print("\nTruck 2 contents:")
-    print(truck2)
-
-    # --- Weighted graph test ---
-    n_nodes = 7
-    G = Graph()
-    G.create_connected_matrix(n_nodes = n_nodes)
-
-    # Display weights at a given instant
-    t_test = 10
-    print("\nWeights at t =", t_test)
-    for i in range(len(G.graph)):
-        for j, f in G.graph[i].items():
-            print(f"Weight {i} → {j} = {round(f(t_test), 2)}")
-
-    # Plot all the time-dependent weights
-    G.plot_graph_functions()
-    G.plot_graph_image()
-    plt.show()
-
-    G.save_graph_pickle(r"..\media\test\graph_7")
-    #G = load_graph_pickle(r"code\media\test\graph_7")
-
-    #plot_graph_functions(G)
-    #plot_graph_image(G)
-    #plt.show()
+    g = Graph()
+    g.load_from_csv('A-n32-k5.vrp')
