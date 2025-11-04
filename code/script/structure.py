@@ -24,7 +24,7 @@ class Truck:
             self.allowed_products = set(allowed_products)
 
     def __str__(self):
-        """Return a formatted string showing the truck’s cargo and remaining capacity."""
+        """Return a formatted string showing the truck's cargo and remaining capacity."""
         lines = [f"Truck '{self.truck_type}' cargo:"]
         for product, qty in self.cargo.items():
             lines.append(f"{qty} x {product.name} (V:{product.volume}, W:{product.weight})")
@@ -63,19 +63,21 @@ class Truck:
 
 
 # region PRODUCT MANAGEMENT
-Product = namedtuple("Product", ["name", "volume", "weight"])
+Product = namedtuple("Product", ["name", "volume", "weight","delivery_time"])
 
-def add_product_to_list(products_dict, name, volume, weight):
+def add_product_to_list(products_dict, name, volume, weight, delivery_time):
     """Add a new product to the product dictionary."""
     if name in products_dict:
         raise ValueError(f"Product '{name}' already exists")
 
-    products_dict[name] = Product(name=name, volume=volume, weight=weight)
+    products_dict[name] = Product(name=name, volume=volume, weight=weight, delivery_time=delivery_time)
 # endregion
 
 
 # region GRAPH & TIME FUNCTION
 #creation
+#DEMAND MANAGEMENT  ISMISSING-----------------------------------
+
 time_line = 24
 def create_time_function(period, n_terms = 4, amp_range = (1,5)):
     """
@@ -203,11 +205,11 @@ def load_graph_pickle(path):
 if __name__ == "__main__":
     # --- Products ---
     products = {}
-    add_product_to_list(products, "Oak wood", volume=5, weight=8)
-    add_product_to_list(products, "Pine wood", volume=3, weight=5)
-    add_product_to_list(products, "Iron", volume=7, weight=10)
-    add_product_to_list(products, "White paint", volume=2, weight=3)
-    add_product_to_list(products, "Plaster", volume=4, weight=6)
+    add_product_to_list(products, "Oak wood", volume=5, weight=8, delivery_time=1/6)
+    add_product_to_list(products, "Pine wood", volume=3, weight=5, delivery_time=1)
+    add_product_to_list(products, "Iron", volume=7, weight=10, delivery_time=1.5)
+    add_product_to_list(products, "White paint", volume=2, weight=3, delivery_time=0.5)
+    add_product_to_list(products, "Plaster", volume=4, weight=6, delivery_time=0.25)
 
     # --- Trucks ---
     heavy_duty_allowed = ["Oak wood", "Pine wood", "Iron"]

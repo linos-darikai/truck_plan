@@ -86,7 +86,7 @@ Input:
   * $E \in V^2$ the set of edges,
   * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
   * $\phi: V \to \mathbb{N}^\mathbb{E}$ returns shop needs.
-* $K$ the thresold of our problem
+* $K$ the threshold of our problem
 
 Output:<br><br>
 Return if it exist a list $l$ ($l \in (V, \mathbb{N}^{E})^{\mathbb{N}^{\mathbb{N}}}$) such as
@@ -343,7 +343,7 @@ since there is only one truck.
 since, for each vertices v ∈ V, the delivery constraint:
 $$\forall v \in V, \phi (v) = 1$$
 
-that means that each vertices receve exactly 1 product.
+that means that each vertices receive exactly 1 product.
 
 As the cost of each edge is 1 and the truck can transport all the stuff at once.
 
@@ -367,37 +367,73 @@ So $\Pi_O$ is in NP-Hard.
 
 As seen in the mathematical problem modelisation, we need to have acces to 3 datas.
 
-1. A list of `Truck` objects. Each truck has:
-    - `truck_type` (str): the name/type of the truck,
-    - `allowed_products` (set of str): names of products the truck is allowed to carry,
-    - `max_volume` (int): maximum volume the truck can carry,
-    - `max_weight` (int): maximum weight the truck can carry,
-    - `cargo` (dict of Product -> int): dictionary mapping products to their quantities in the truck.
+1. **List of `Truck` objects**  
+   Each truck has the following attributes:  
+   - `truck_type` (`str`): The name/type of the truck.  
+   - `allowed_products` (`set` of `str`): Names of products the truck is allowed to carry.  
+   - `max_volume` (`int`): Maximum volume the truck can carry.  
+   - `max_weight` (`int`): Maximum weight the truck can carry.  
+   - `cargo` (`dict` of `Product` → `int`): Dictionary mapping products to their quantities in the truck.
 
-2. A list of `Product` objects. Each product has:
-    - `name` (str): name of the product,
-    - `volume` (int): volume of one unit of the product,
-    - `weight` (int): weight of one unit of the product.
+2. **List of `Product` objects**  
+   Each product has the following attributes:  
+   - `name` (`str`): Name of the product.  
+   - `volume` (`int`): Volume of one unit of the product.  
+   - `weight` (`int`): Weight of one unit of the product.
+   - `delivery_time` (`float`): the time necessary to delivered the product
 
-3. the graph G
+3. **Graph `G`**  
+   Represented as a list of dictionaries:  
+   - `G[i][j] = f(t)` is a function returning the time-dependent weight from node `i` to node `j`.  
+   - If there is no edge from `i` to `j`, `j` is not a key in `G[i]`.
 
-The two first point will be represent by a list of object.</br>
-The graph will be represent by a adjacency matrix.
-
-The answer is the list of the truck paths with the depot in each node.
-
-We can represent the answer like (int,int list) list list.
+4. **Solution `S`**  
+   Represented as a list of lists of tuple `(node_index, products_delivered, leaving_time)`:  
+   - Each outer list corresponds to a truck.  
+   - Each inner list represents the sequence of nodes visited by that truck.  
+   - Each node contains:  
+     - `node_index` (`int`): index of the node visited.  
+     - `products_delivered` (`dict` of product identifiers and his quantity): products delivered at that node.
+     - `leaving_time` (`int`): the moment when the truck leave the place 
 
 ---
-## IV) What are the next steps?
+## IV) How to solve the problem
+### IV.1 Exact solution
+Finding an exact solution to this truck routing and delivery problem is computationally infeasible for realistic instances. The problem is NP-Hard, meaning that the time required to compute the optimal solution grows exponentially with the number of trucks, products, and nodes.
+
+### IV.2 Approximate solution
+
+
+Metaheuristic
+
+Tabu Search: Use memory of visited solutions to avoid cycling and explore better solutions.
+
+Advantages:
+
+Can handle multiple trucks, capacity constraints, and time-dependent travel times.
+
+Flexible: You can add constraints like truck types, product restrictions, and fuel modifiers.
+
+Provides good approximate solutions quickly, even if not optimal.
+
+
+## What are the next steps?
 
 * search the good way to solve the problem
-* create the objects
-* create a test generator
 * implement it
-* make a fonction which verify if the solution of the algorythm can  be considered or not.
+* make a fonction which verify if the solution of the algorythm can be considered or not.
+* Performance evaluation
 ---
 ## V) Sources
+##### Theoretical References:
+
 [Hamiltonian cycle is in NP demonstration](#https://cs.indstate.edu/~bdhome/HamCycle.pdf)
 
-[collection namedtuple](#https://docs.python.org/3/library/collections.html#collections.namedtuple)
+
+##### Programing library:
+
+[Collection namedtuple](#https://docs.python.org/3/library/collections.html#collections.namedtuple)
+
+[NetworkX](#https://networkx.org/documentation/stable/tutorial.html)
+
+[Pickle](#https://docs.python.org/3/library/pickle.html)
