@@ -61,7 +61,7 @@ class Truck:
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
 # endregion
-class Node:
+class Node: # we can change this into a node 
     def __init__(self, coordinates, weight, demand):
         self.coordinates = coordinates
         self.weight = weight
@@ -72,6 +72,7 @@ class Graph:
     def __init__(self):
         self.time_line = 24
         self.graph = None
+        self_instance = None
         pass
     def __str__(self):
         """
@@ -86,6 +87,7 @@ class Graph:
         """
         path = f"../media/instances/{file_name}"
         instance = vrplib.read_instance(path)
+        self.instance = instance
         n = len(instance['node_coord'])
         graph = [[None for _ in range(n)] for _ in range(n)]
 
@@ -175,7 +177,7 @@ class Graph:
                 if i == j or j not in self.graph[i]:
                     y_values = np.zeros_like(t_values)
                 else:
-                    f = self.graph[i][j]
+                    f = self.graph[i][j][0]
                     y_values = np.array([f(t) for t in t_values])
 
                 ax.plot(t_values, y_values)
@@ -185,28 +187,59 @@ class Graph:
 
         plt.tight_layout()
 
-    def plot_graph_image(self, t = None):
-        """Display the directed graph with optional edge labels at a specific time t."""
-        plt.figure("Graph Image")
-        G = nx.DiGraph()
-        n_nodes = len(self.graph)
+  
+    def plot_instance_graph(self, graph=None, t=None):
+        """
+        Visualize a VRP instance as a complete graph using real coordinates.
         
-        # Ajouter les nœuds
-        for i in range(n_nodes):
-            G.add_node(i)
-        
-        # Ajouter les arcs avec labels
-        edge_labels = {}
-        for i, neighbors in enumerate(self.graph):
-            for j, f in neighbors.items():
-                G.add_edge(i, j)
-                if t is not None:
-                    edge_labels[(i,j)] = f"{f(t):.1f}"
+        instance: dict from vrplib.read_instance()
+        graph:    optional adjacency matrix or dict structure with time functions
+        t:        optional time parameter to evaluate time-dependent edges
+        """
 
-        pos = nx.circular_layout(G)
-        nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=1000, arrowsize=20)
+        coords = self.instance["node_coord"]
+        demands = self.instance.get("demand", None)
+        n = len(coords)
+
+        # Convert coordinates to a NetworkX position dict
+        pos = {i: (coords[i][0], coords[i][1]) for i in range(n)}
+        # note: vrplib nodes start at 1, Python indexing starts at 0
+
+        G = nx.DiGraph()
+
+        # Add nodes with demand labels
+        for i in range(n):
+            label = f"{i}" if demands is None else f"{i}\n(d={demands[i]})"
+            G.add_node(i, label=label)
+
+        # Add edges (complete graph)
+        edge_labels = {}
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    G.add_edge(i, j)
+                    if graph and graph[i][j]:
+                        f = graph[i][j]["time_func"]
+                        if t is not None:
+                            edge_labels[(i, j)] = f"{f(t):.1f}"
+
+        plt.figure("VRP Graph", figsize=(10, 8))
+        nx.draw(
+            G, pos,
+            with_labels=True,
+            labels={i: G.nodes[i]["label"] for i in G.nodes},
+            node_color="lightblue",
+            node_size=900,
+            arrowsize=20
+        )
+
         if edge_labels:
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+
+        plt.title("VRP Instance with Coordinates")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.show()
 
     #save
     def save_graph_pickle(self, path):
@@ -258,4 +291,6 @@ def add_product_to_list(products_dict, name, volume, weight, delivery_time):
 if __name__ == "__main__":
     # --- Products ---
     g = Graph()
-    g.load_from_csv('A-n32-k5.vrp')
+    g.load_from_file('A-n32-k5.vrp')
+    #g.plot_graph_functions()
+    g.plot_instance_graph()
