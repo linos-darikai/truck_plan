@@ -96,15 +96,15 @@ class Graph:
             return val
         return f
 
-    def is_strongly_connected(self):
+    def is_strongly_connected(self, graph):
         """Check if the directed graph is strongly connected."""
         def bfs(start):
-            visited = [False]*len(self.graph)
+            visited = [False]*len(graph)
             queue = deque([start])
             visited[start]=True
             while queue:
                 node = queue.popleft()
-                for neighbor in self.graph[node]:
+                for neighbor in graph[node]:
                     if neighbor < start:
                         return True
                     if not visited[neighbor]:
@@ -112,7 +112,7 @@ class Graph:
                         queue.append(neighbor)
             return all(visited)
 
-        for i in range(len(self.graph)):
+        for i in range(len(graph)):
             if not bfs(i):
                 return False
         return True
@@ -151,7 +151,7 @@ class Graph:
                 if i == j or j not in self.graph[i]:
                     y_values = np.zeros_like(t_values)
                 else:
-                    f = graph[i][j]
+                    f = self.graph[i][j]
                     y_values = np.array([f(t) for t in t_values])
 
                 ax.plot(t_values, y_values)
@@ -261,23 +261,24 @@ if __name__ == "__main__":
 
     # --- Weighted graph test ---
     n_nodes = 7
-    G = create_oriented_connected_matrix(n_nodes = n_nodes)
+    G = Graph()
+    G.create_connected_matrix(n_nodes = n_nodes)
 
     # Display weights at a given instant
     t_test = 10
     print("\nWeights at t =", t_test)
-    for i in range(len(G)):
-        for j, f in G[i].items():
+    for i in range(len(G.graph)):
+        for j, f in G.graph[i].items():
             print(f"Weight {i} → {j} = {round(f(t_test), 2)}")
 
     # Plot all the time-dependent weights
-    plot_graph_functions(G)
-    plot_graph_image(G)
+    G.plot_graph_functions()
+    G.plot_graph_image()
     plt.show()
 
-    save_graph_pickle(G, r"code\media\test\graph_7")
-    G = load_graph_pickle(r"code\media\test\graph_7")
+    G.save_graph_pickle(r"..\media\test\graph_7")
+    #G = load_graph_pickle(r"code\media\test\graph_7")
 
-    plot_graph_functions(G)
-    plot_graph_image(G)
-    plt.show()
+    #plot_graph_functions(G)
+    #plot_graph_image(G)
+    #plt.show()
