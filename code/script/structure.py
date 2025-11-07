@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import dill
+import vrplib
 
 # region TRUCK MANAGEMENT
 class Truck:
@@ -60,6 +61,206 @@ class Truck:
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
 # endregion
+class Node: # we can change this into a node 
+    def __init__(self, coordinates, weight, demand):
+        self.coordinates = coordinates
+        self.weight = weight
+        self.demand = demand
+
+        
+class Graph:
+    def __init__(self):
+        self.time_line = 24
+        self.graph = None
+        self_instance = None
+        pass
+    def __str__(self):
+        """
+        Display the graph into string
+        """
+        return
+    def load_from_file(self, file_name):
+        """
+        This is a function that is to load the graph from the CSV from the website 
+        we need to model that situation into our graph and be able to load.
+        Check the data from CSV
+        """
+        path = f"../media/instances/{file_name}"
+        instance = vrplib.read_instance(path)
+        self.instance = instance
+        n = len(instance['node_coord'])
+        graph = [[None for _ in range(n)] for _ in range(n)]
+
+        print(len(instance['node_coord']))
+        print(instance['demand'][0])
+        for i in range(len(instance['node_coord'])):
+            for k in range(len(instance['node_coord'] + 1)):
+                if i != k and not graph[i][k]:
+                    n_range = r.randint(0, 20)
+                    amp_range = r.uniform(0.1, 2.0)
+                    graph[i][k] = {0: self.create_time_function(period=24,n_terms=n_range), 1: instance['demand'][k]} # demand can be change into dictionary
+                else:
+                    graph[i][k] = None
+        self.graph = graph
+        return
+    
+    def create_time_function(self, period, n_terms = 4, amp_range = (1,5)):
+        """
+        Create a positive periodic time function using cosine components:
+        f(t) = a0 + Σ a_i * cos(w_i t + phi_i)
+        """
+        a_coeffs = [r.uniform(*amp_range) for _ in range(n_terms)]
+        k_values = [r.uniform(1, 5) for _ in range(n_terms)]
+        phi_values = [r.uniform(0, 2 * np.pi) for _ in range(n_terms)]
+        w_values = [2 * np.pi * k / period for k in k_values]
+        offset = sum(a_coeffs) + r.uniform(1.0, 5.0) #distance has to be accounted for here
+
+        def f(t):
+            val = offset
+            for a, w, phi in zip(a_coeffs, w_values, phi_values):
+                val += a * np.cos(w * t + phi)
+            return val
+        return f
+
+    def is_strongly_connected(self, graph):
+        """Check if the directed graph is strongly connected."""
+        def bfs(start):
+            visited = [False]*len(graph)
+            queue = deque([start])
+            visited[start]=True
+            while queue:
+                node = queue.popleft()
+                for neighbor in graph[node]:
+                    if neighbor < start:
+                        return True
+                    if not visited[neighbor]:
+                        visited[neighbor]=True
+                        queue.append(neighbor)
+            return all(visited)
+
+        for i in range(len(graph)):
+            if not bfs(i):
+                return False
+        return True
+
+    def create_connected_matrix(self, n_nodes=5, period = 24):
+        """Generate a random strongly connected directed graph with time-dependent weights."""
+        graph = [{} for _ in range(n_nodes)]
+        for i in range(n_nodes):
+            for j in range(n_nodes):
+                if i != j and r.random()<0.6:
+                    graph[i][j] = self.create_time_function(period)
+        while not self.is_strongly_connected(graph):
+            i, j = r.sample(range(n_nodes), 2)
+            if j not in graph[i]:
+                graph[i][j] = self.create_time_function(period)
+        self.graph = graph
+        return graph
+
+    #print
+    def plot_graph_functions(self, period = 24):
+        """Plot all time-dependent edge functions of the graph."""
+        n_nodes = len(self.graph)
+        t_values = np.linspace(0, period, 200)
+
+        fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
+
+        # Ensure axes is 2D array for consistent indexing
+        if n_nodes == 1:
+            axes = np.array([[axes]])
+        elif axes.ndim == 1:
+            axes = axes.reshape((n_nodes, n_nodes))
+
+        for i in range(n_nodes):
+            for j in range(n_nodes):
+                ax = axes[i, j]
+                if i == j or j not in self.graph[i]:
+                    y_values = np.zeros_like(t_values)
+                else:
+                    f = self.graph[i][j][0]
+                    y_values = np.array([f(t) for t in t_values])
+
+                ax.plot(t_values, y_values)
+                ax.set_title(f"{i} → {j}")
+                ax.set_ylim(0, max(y_values.max(), 1)*1.2)
+                ax.grid(True)
+
+        plt.tight_layout()
+
+  
+    def plot_instance_graph(self, graph=None, t=None):
+        """
+        Visualize a VRP instance as a complete graph using real coordinates.
+        
+        instance: dict from vrplib.read_instance()
+        graph:    optional adjacency matrix or dict structure with time functions
+        t:        optional time parameter to evaluate time-dependent edges
+        """
+
+        coords = self.instance["node_coord"]
+        demands = self.instance.get("demand", None)
+        n = len(coords)
+
+        # Convert coordinates to a NetworkX position dict
+        pos = {i: (coords[i][0], coords[i][1]) for i in range(n)}
+        # note: vrplib nodes start at 1, Python indexing starts at 0
+
+        G = nx.DiGraph()
+
+        # Add nodes with demand labels
+        for i in range(n):
+            label = f"{i}" if demands is None else f"{i}\n(d={demands[i]})"
+            G.add_node(i, label=label)
+
+        # Add edges (complete graph)
+        edge_labels = {}
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    G.add_edge(i, j)
+                    if graph and graph[i][j]:
+                        f = graph[i][j]["time_func"]
+                        if t is not None:
+                            edge_labels[(i, j)] = f"{f(t):.1f}"
+
+        plt.figure("VRP Graph", figsize=(10, 8))
+        nx.draw(
+            G, pos,
+            with_labels=True,
+            labels={i: G.nodes[i]["label"] for i in G.nodes},
+            node_color="lightblue",
+            node_size=900,
+            arrowsize=20
+        )
+
+        if edge_labels:
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+
+        plt.title("VRP Instance with Coordinates")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.show()
+
+    #save
+    def save_graph_pickle(self, path):
+        """Save the graph object to a file using pickle."""
+        with open(path, "wb") as f:
+            dill.dump(self.graph, f)
+
+    def load_graph_pickle(self, path):
+        """Load the graph object from a pickle file."""
+        with open(path, "rb") as f:
+            return dill.load(f)
+
+
+
+
+
+
+
+
+
+
 
 
 # region PRODUCT MANAGEMENT
@@ -78,122 +279,7 @@ def add_product_to_list(products_dict, name, volume, weight, delivery_time):
 #creation
 #DEMAND MANAGEMENT  ISMISSING-----------------------------------
 
-time_line = 24
-def create_time_function(period, n_terms = 4, amp_range = (1,5)):
-    """
-    Create a positive periodic time function using cosine components:
-    f(t) = a0 + Σ a_i * cos(w_i t + phi_i)
-    """
-    a_coeffs = [r.uniform(*amp_range) for _ in range(n_terms)]
-    k_values = [r.uniform(1, 5) for _ in range(n_terms)]
-    phi_values = [r.uniform(0, 2 * np.pi) for _ in range(n_terms)]
-    w_values = [2 * np.pi * k / period for k in k_values]
-    offset = sum(a_coeffs) + r.uniform(1.0, 5.0)
 
-    def f(t):
-        val = offset
-        for a, w, phi in zip(a_coeffs, w_values, phi_values):
-            val += a * np.cos(w * t + phi)
-        return val
-    return f
-
-def is_strongly_connected(graph):
-    """Check if the directed graph is strongly connected."""
-    def bfs(start):
-        visited = [False]*len(graph)
-        queue = deque([start])
-        visited[start]=True
-        while queue:
-            node = queue.popleft()
-            for neighbor in graph[node]:
-                if neighbor < start:
-                    return True
-                if not visited[neighbor]:
-                    visited[neighbor]=True
-                    queue.append(neighbor)
-        return all(visited)
-
-    for i in range(len(graph)):
-        if not bfs(i):
-            return False
-    return True
-
-def create_oriented_connected_matrix(n_nodes=5, period = time_line):
-    """Generate a random strongly connected directed graph with time-dependent weights."""
-    graph = [{} for _ in range(n_nodes)]
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            if i != j and r.random()<0.6:
-                graph[i][j] = create_time_function(period)
-    while not is_strongly_connected(graph):
-        i, j = r.sample(range(n_nodes), 2)
-        if j not in graph[i]:
-            graph[i][j] = create_time_function(period)
-    return graph
-
-#print
-def plot_graph_functions(graph, period = time_line):
-    """Plot all time-dependent edge functions of the graph."""
-    n_nodes = len(graph)
-    t_values = np.linspace(0, period, 200)
-
-    fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
-
-    # Ensure axes is 2D array for consistent indexing
-    if n_nodes == 1:
-        axes = np.array([[axes]])
-    elif axes.ndim == 1:
-        axes = axes.reshape((n_nodes, n_nodes))
-
-    for i in range(n_nodes):
-        for j in range(n_nodes):
-            ax = axes[i, j]
-            if i == j or j not in graph[i]:
-                y_values = np.zeros_like(t_values)
-            else:
-                f = graph[i][j]
-                y_values = np.array([f(t) for t in t_values])
-
-            ax.plot(t_values, y_values)
-            ax.set_title(f"{i} → {j}")
-            ax.set_ylim(0, max(y_values.max(), 1)*1.2)
-            ax.grid(True)
-
-    plt.tight_layout()
-
-def plot_graph_image(graph, t = None):
-    """Display the directed graph with optional edge labels at a specific time t."""
-    plt.figure("Graph Image")
-    G = nx.DiGraph()
-    n_nodes = len(graph)
-    
-    # Ajouter les nœuds
-    for i in range(n_nodes):
-        G.add_node(i)
-    
-    # Ajouter les arcs avec labels
-    edge_labels = {}
-    for i, neighbors in enumerate(graph):
-        for j, f in neighbors.items():
-            G.add_edge(i, j)
-            if t is not None:
-                edge_labels[(i,j)] = f"{f(t):.1f}"
-
-    pos = nx.circular_layout(G)
-    nx.draw(G, pos, with_labels=True, node_color="lightblue", node_size=1000, arrowsize=20)
-    if edge_labels:
-        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
-
-#save
-def save_graph_pickle(graph, path):
-    """Save the graph object to a file using pickle."""
-    with open(path, "wb") as f:
-        dill.dump(graph, f)
-
-def load_graph_pickle(path):
-    """Load the graph object from a pickle file."""
-    with open(path, "rb") as f:
-        return dill.load(f)
 
 #endregion
 
@@ -204,51 +290,7 @@ def load_graph_pickle(path):
 
 if __name__ == "__main__":
     # --- Products ---
-    products = {}
-    add_product_to_list(products, "Oak wood", volume=5, weight=8, delivery_time=1/6)
-    add_product_to_list(products, "Pine wood", volume=3, weight=5, delivery_time=1)
-    add_product_to_list(products, "Iron", volume=7, weight=10, delivery_time=1.5)
-    add_product_to_list(products, "White paint", volume=2, weight=3, delivery_time=0.5)
-    add_product_to_list(products, "Plaster", volume=4, weight=6, delivery_time=0.25)
-
-    # --- Trucks ---
-    heavy_duty_allowed = ["Oak wood", "Pine wood", "Iron"]
-    chemical_truck_allowed = ["White paint", "Plaster"]
-
-    truck1 = Truck("Heavy Duty", allowed_products=heavy_duty_allowed, max_volume=50, max_weight=60, modifier=1)
-    truck2 = Truck("Chemical Truck", allowed_products=chemical_truck_allowed, max_volume=40, max_weight=50, modifier=1.2)
-
-    try:
-        truck1.add_product(products["Oak wood"], quantity=3)
-        truck1.add_product(products["Pine wood"], quantity=2)
-        truck2.add_product(products["White paint"], quantity=4)
-    except ValueError as e:
-        print("Error:", e)
-
-    print("\nTruck 1 contents:")
-    print(truck1)
-    print("\nTruck 2 contents:")
-    print(truck2)
-
-    # --- Weighted graph test ---
-    n_nodes = 7
-    G = create_oriented_connected_matrix(n_nodes = n_nodes)
-
-    # Display weights at a given instant
-    t_test = 10
-    print("\nWeights at t =", t_test)
-    for i in range(len(G)):
-        for j, f in G[i].items():
-            print(f"Weight {i} → {j} = {round(f(t_test), 2)}")
-
-    # Plot all the time-dependent weights
-    plot_graph_functions(G)
-    plot_graph_image(G)
-    plt.show()
-
-    save_graph_pickle(G, r"code\media\test\graph_7")
-    G = load_graph_pickle(r"code\media\test\graph_7")
-
-    plot_graph_functions(G)
-    plot_graph_image(G)
-    plt.show()
+    g = Graph()
+    g.load_from_file('A-n32-k5.vrp')
+    #g.plot_graph_functions()
+    g.plot_instance_graph()
