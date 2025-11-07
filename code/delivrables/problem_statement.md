@@ -1,5 +1,5 @@
 # <center>Truck plan</center>
-
+## Submitted by: Haifa, Olivier, Linos, Maisam Haider
 ## Table of Contents
 
 * [I) Introduction](#i-introduction)
@@ -15,11 +15,24 @@
     * [II.2.b. The optimisation problem is NP?](#ii2b-the-optimisation-problem-is-np)
   * [II.3. Proof of NP-Hard membership of the problems](#ii3-proof-of-np-hard-membership-of-the-problems)
     * [II.3.a. The decision problem is NP-Complete?](#ii3a-the-decision-problem-is-np-complete)
-    * [II.2.b. The optimisation problem is NP-Hard?](#ii2b-the-optimisation-problem-is-np-hard)
-* [III) Data format](#iii-data-format)
-* [IV) What are the next steps?](#iv-what-are-the-next-steps)
-* [V) Sources](#v-sources)
-
+    * [II.3.b. The optimisation problem is NP-Hard?](#ii3b-the-optimisation-problem-is-np-hard)
+* [III) Mathematical Constraints](#iii-mathematical-constraints)
+  * [III.1. Notations and Reminders](#iii1-notations-and-reminders)
+  * [III.2. Objective Function](#iii2-objective-function)
+  * [III.3. Constraints](#iii3-constraints)
+    * [III.3.a. Demand Coverage](#iii3a-demand-coverage)
+    * [III.3.b. Cycle](#iii3b-cycle)
+    * [III.3.c. Temporal and Route Consistency](#iii3c-temporal-and-route-consistency)
+    * [III.3.d. Capacity Constraints](#iii3d-capacity-constraints)
+    * [III.3.e. Cargo Delivery Limits (Ghost Products)](#iii3e-cargo-delivery-limits-ghost-products)
+    * [III.3.f. Feasible Route (Edge Existence)](#iii3f-feasible-route-edge-existence)
+    * [III.3.g. Product Compatibility](#iii3g-product-compatibility)
+* [IV) Data Format](#iv-data-format)
+* [V) How to Solve the Problem](#v-how-to-solve-the-problem)
+  * [V.1 Exact Solution](#v1-exact-solution)
+  * [V.2 Approximate Solution](#v2-approximate-solution)
+* [VI) Next Steps](#vi-next-steps)
+* [VII) Sources](#vii-sources)
 
 
 ---
@@ -55,12 +68,12 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 #### <u>Optimisation problem ($\Pi_O$):</u>
 
 Input:
-* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
-* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight)
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight, fuel modifier)
+* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight, delivery time)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
-  * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
+  * $\omega : E \times \mathbb{N} \rightarrow (\mathbb{R}\rightarrow\mathbb{R})$ a function returning the cost fuction.
   * $\phi: V \to \mathbb{N}^{|\mathbb{E}|}$ returns shop needs.
 
 <br>
@@ -79,18 +92,18 @@ Return the element $l^*$
 #### <u>Decision problem assocaite ($\Pi_D$):</u>
 
 Input:
-* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight)
-* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight)
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight, fuel modifier)
+* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight, delivery time)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
-  * $\omega : E \times \mathbb{N} \rightarrow \mathbb{N}^\mathbb{N}$ a function returning time-variation polynomial coefficients.
+  * $\omega : E \times \mathbb{N} \rightarrow (\mathbb{R}\rightarrow\mathbb{R})$ a function returning the cost fuction.
   * $\phi: V \to \mathbb{N}^\mathbb{E}$ returns shop needs.
 * $K$ the threshold of our problem
 
 Output:<br><br>
-Return if it exist a list $l$ ($l \in (V, \mathbb{N}^{E})^{\mathbb{N}^{\mathbb{N}}}$) such as
-$$\forall v \in V, \forall e \in \mathbb{E}, \phi(v)[e] = \sum_{n \in [0,|T|]} l[n][1][e]$$
+Return if it exist a list $l$ ($l \in (V, \mathbb{N}^{E}, \mathbb{R})^{\mathbb{N}^{|T|}}$) such as
+$$\forall v \in V, \forall e \in \mathbb{E}, \quad \phi(v)[e] = \sum_{n = 0}^{|T|} l[n][1][e]$$
 $$ \max_n |l[n]| \leq K$$
 <br>
 
@@ -211,7 +224,7 @@ T &=&[[0],|V_H|,|V_H|]\\
 G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
 && V = V_H \\
 && E = E_H \\
-&& \omega = 1 \\
+&& \omega = 𝟙 \\
 && \phi = [1] \\
 K &=&|V_H|\\
 \end{array}
@@ -300,7 +313,7 @@ T &=&[[0],|V_H|,|V_H|]\\
 G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
 && V = V_H \\
 && E = E_H \\
-&& \omega = 1 \\
+&& \omega = 𝟙 \\
 && \phi = [1] \\
 \end{array}
 $$
@@ -363,7 +376,149 @@ corresponds to a Hamiltonian cycle in $ H $.
 So $\Pi_O$ is in NP-Hard.
 
 ---
-## III) data format
+## III) matematical constraints
+### III.1. remind
+We defined:
+* $T \in (\mathbb{N}^\mathbb{N}, \mathbb{N}, \mathbb{N}, \mathbb{R})^\mathbb{N}$:  
+  the list of **trucks**, where each truck $t$ is defined as  
+  $$
+  t = (\text{AllowedProducts}, \text{MaxVolume}, \text{MaxWeight}, \text{FuelModifier})
+  $$
+* $C \in {(\mathbb{N}^{|\mathbb{E}|})^\mathbb{N}}^\mathbb{N}$:  
+  the list of **the items cargo**, where
+  $$C[t][i]$$
+  represent the cargo of the truck $t$ in the $i$-th stop
+
+* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$:  
+  the list of **sellable products**, each product $e$ being  
+  $$
+  e = (\text{UnitVolume}, \text{UnitWeight}, \text{DeliveryTime})
+  $$
+
+* $G = \{V, E, \omega, \phi\}$:  
+  a **directed weighted graph** where:
+  * $V$ is the set of vertices (shops or depots),
+  * $E \subseteq V \times V$ is the set of edges,
+  * $\omega : E \times \mathbb{N} \rightarrow \mathbb{R}$ gives the **time-dependent cost function**,
+  * $\phi : V \to \mathbb{N}^{|\mathbb{E}|}$ defines the **demand** (quantity of each product required at each vertex).
+
+* $S \in ((V \times \mathbb{N}^{|\mathbb{E}|} \times \mathbb{N})^\mathbb{N})^{|T|}$:  
+  the **solution representation**, where  
+  $$
+  S[t][i] = (v, q, \tau)
+  $$
+  represents the $i$-th stop of truck $t$:
+  - $v \in V$: node index visited,  
+  - $q \in \mathbb{N}^{|\mathbb{E}|}$: vector of quantities delivered,  
+  - $\tau \in \mathbb{N}$: leaving time from node $v$.
+
+---
+
+### III.2. Objective function
+
+$$
+\min Z_1 = \max_{t \in [0, |T|)} 
+  \left(
+    S[t][-2][2] + \omega(S[t][-2][0], S[t][-1][0])(S[t][-2][2])
+  \right)
+$$
+
+where:
+* $S[t][-2][2]$: leaving time of the second-to-last node,  
+* $\omega(S[t][-2][0], S[t][-1][0])(S[t][-2][2])$: travel cost between the last two nodes depending on departure time.
+
+This objective ensures **the last truck to finish has the shortest possible total duration**.
+
+
+
+---
+
+### III.3. Constraints
+
+#### III.3.a Demand Coverage
+
+Each customer (vertex) must receive exactly the products it requires:
+
+$$
+\forall v \in V,\ \forall e \in \mathbb{E}, \quad
+\phi(v)[e] = 
+\sum_{t=0}^{|T|-1} \sum_{s \in S[t]} s[1][e] \cdot \mathbb{1}_{s[0] = v}
+$$
+
+where $\mathbb{1}_{s[0] = v}$ is an indicator equal to 1 if truck $t$ visits node $v$, 0 otherwise.
+
+---
+
+
+#### III.3.b Cycle
+
+Each truck must start and end its route at the **same depot**:
+
+$$
+\forall t \in T, \quad S[t][0][0] = S[t][|S[t]| - 1][0]
+$$
+
+---
+
+#### III.3.c Temporal and Route Consistency
+
+The departure time from each node must respect both **travel time** and **service (delivery) time**:
+
+$$
+\forall t \in T, \forall m \in [0, |S[t]| - 2], \quad
+S[t][m+1][2] \ge 
+S[t][m][2]
++ \omega(S[t][m][0], S[t][m+1][0])(S[t][m][2])
++ \sum_{e=0}^{|\mathbb{E}|-1} S[t][m][1][e] \cdot \mathbb{E}[e][2]
+$$
+
+This ensures that no truck leaves a node before completing deliveries and travel.
+
+---
+
+#### III.3.d Capacity Constraints
+
+Each truck cannot exceed its **volume** and **weight** limits:
+
+$$
+\forall t \in T,\ \forall m \in [0, |S[t]|-1), \quad
+\begin{cases}
+\displaystyle \sum_{e=0}^{|\mathbb{E}|-1} C[t][m][e] \times \mathbb{E}[e][0] \le T[t][1] & \text{(volume)}\\[1em]
+\displaystyle \sum_{e=0}^{|\mathbb{E}|-1} C[t][m][e] \times \mathbb{E}[e][1] \le T[t][2] & \text{(weight)}
+\end{cases}
+$$
+---
+#### III.3.e Ghost products
+Each truck cannot delivered more than they transport:
+
+$$
+\forall t \in T, \forall m \in [0, |S[t]|-1), \forall e \in S[t][m][1] \quad
+e \leq C[t][m][e]
+$$
+
+---
+
+#### III.3.f Feasible Route (Edge Existence)
+
+A truck can only move along existing edges:
+
+$$
+\forall t \in T, \forall m \in [0, |S[t]| - 2], \quad
+(S[t][m][0], S[t][m+1][0]) \in E
+$$
+---
+
+#### III.3.g Product Compatibility
+
+Each truck can only deliver products it is allowed to carry:
+
+$$
+\forall t \in T,\forall m \in [0, |S[t]|-1] , \forall e \in \mathbb{E}, \quad
+S[t][m][1][e] > 0 \ \Rightarrow\ e \in T[t][0]
+$$
+
+---
+## IV) data format
 
 As seen in the mathematical problem modelisation, we need to have acces to 3 datas.
 
@@ -396,12 +551,11 @@ As seen in the mathematical problem modelisation, we need to have acces to 3 dat
      - `products_delivered` (`dict` of product identifiers and his quantity): products delivered at that node.
      - `leaving_time` (`int`): the moment when the truck leave the place 
 
----
-## IV) How to solve the problem
-### IV.1 Exact solution
+## V) How to solve the problem
+### V.1 Exact solution
 Finding an exact solution to this truck routing and delivery problem is computationally infeasible for realistic instances. The problem is NP-Hard, meaning that the time required to compute the optimal solution grows exponentially with the number of trucks, products, and nodes.
 
-### IV.2 Approximate solution
+### V.2 Approximate solution -------------------------------------------------------------------------------------------------------
 
 
 Metaheuristic
@@ -417,14 +571,14 @@ Flexible: You can add constraints like truck types, product restrictions, and fu
 Provides good approximate solutions quickly, even if not optimal.
 
 
-## What are the next steps?
+## VI) next steps
 
 * search the good way to solve the problem
 * implement it
 * make a fonction which verify if the solution of the algorythm can be considered or not.
 * Performance evaluation
 ---
-## V) Sources
+## VII) Sources
 ##### Theoretical References:
 
 [Hamiltonian cycle is in NP demonstration](#https://cs.indstate.edu/~bdhome/HamCycle.pdf)
