@@ -7,7 +7,10 @@ import networkx as nx
 import dill
 import vrplib
 
-# region TRUCK MANAGEMENT
+##########################################################################################################
+###########################################################################################################
+###########################################################################################################
+#region Truck
 class Truck:
     """Represents a truck that can carry specific types of products with capacity limits."""
     def __init__(self, truck_type, allowed_products=None, max_volume=100, max_weight=120, modifier=1):
@@ -61,17 +64,16 @@ class Truck:
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
 # endregion
-class Node: # we can change this into a node 
-    def __init__(self, coordinates, weight, demand):
-        self.coordinates = coordinates
-        self.weight = weight
-        self.demand = demand
+class Node: 
+    def __init__(self, demand):
+        self.demand = demand # we can add types here
 
         
 class Graph:
     def __init__(self):
         self.time_line = 24
-        self.graph = None
+        self.matrix = None
+        self.nodes = []
         self_instance = None
         pass
     def __str__(self):
@@ -90,18 +92,19 @@ class Graph:
         self.instance = instance
         n = len(instance['node_coord'])
         graph = [[None for _ in range(n)] for _ in range(n)]
-
-        print(len(instance['node_coord']))
-        print(instance['demand'][0])
+        nodes = []
         for i in range(len(instance['node_coord'])):
             for k in range(len(instance['node_coord'] + 1)):
                 if i != k and not graph[i][k]:
                     n_range = r.randint(0, 20)
                     amp_range = r.uniform(0.1, 2.0)
-                    graph[i][k] = {0: self.create_time_function(period=24,n_terms=n_range), 1: instance['demand'][k]} # demand can be change into dictionary
+                    graph[i][k] = self.create_time_function(period=24,n_terms=n_range)
                 else:
                     graph[i][k] = None
-        self.graph = graph
+            new_node = Node(instance['demand'][i])
+            nodes.append(new_node)
+        self.matrix = graph
+        self.nodes = nodes
         return
     
     def create_time_function(self, period, n_terms = 4, amp_range = (1,5)):
@@ -160,7 +163,7 @@ class Graph:
     #print
     def plot_graph_functions(self, period = 24):
         """Plot all time-dependent edge functions of the graph."""
-        n_nodes = len(self.graph)
+        n_nodes = len(self.matrix)
         t_values = np.linspace(0, period, 200)
 
         fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
@@ -177,7 +180,7 @@ class Graph:
                 if i == j or j not in self.graph[i]:
                     y_values = np.zeros_like(t_values)
                 else:
-                    f = self.graph[i][j][0]
+                    f = self.matrix[i][j]
                     y_values = np.array([f(t) for t in t_values])
 
                 ax.plot(t_values, y_values)
