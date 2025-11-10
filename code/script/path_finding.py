@@ -2,6 +2,24 @@ import structure
 import random as r
 import copy as c
 
+"""
+Solution new structure 
+solution = [
+    {
+        'truck_id': 0,
+        'total_load': 35,  # Sum of all deliveries
+        'route': [
+            {'node': 0, 'arrival': 0, 'service': 0, 'departure': 0, 'deliver': 0, 'load_after': 35},
+            {'node': 3, 'arrival': 10.0, 'service': 0.5, 'departure': 10.5, 'deliver': 15, 'load_after': 20},
+            {'node': 7, 'arrival': 25.0, 'service': 0.3, 'departure': 25.3, 'deliver': 20, 'load_after': 0},
+            {'node': 0, 'arrival': 40.0, 'service': 0, 'departure': 40.0, 'deliver': 0, 'load_after': 0}
+        ]
+    },
+    {...}
+]
+"""
+
+
 #time printer
 def get_path_travel_time(graph, truck, path, units='hours'):
     """
@@ -52,50 +70,44 @@ def get_path_travel_time(graph, truck, path, units='hours'):
     # Default to hours
     return total_travel_time_hours
 
-def calculate_path_time(graph, truck, products, path):
+def calculate_path_time(graph, truck, path, service_time=0.5):
     """
-    Calculate the total time (travel + delivery) for a single truck's path.
-
+    Calculate total time for a truck's path.
+    
     Args:
-        graph (list): The graph matrix with edge functions.
-        truck (Truck): The truck object assigned to this path.
-        products (dict): The dictionary of all products.
-        path (list): A list of tuples:
-            (node_index, products_delivered_dict, leaving_time)
+        graph: Graph object with edge_functions matrix
+        truck: Truck object
+        path: List of tuples (node_id, deliver_qty, departure_time)
+             OR list of dicts (if using Option B)
+        service_time: Time to deliver at each customer
     
     Returns:
-        float: The total time for the path in hours.
+        float: Total time in minutes
     """
-    total_path_time = 0
-    # No travel time if path is empty or just has the starting node
     if not path or len(path) < 2:
-        return 0 
-
-    current_node = path[0][0]
-
-    # Iterate from the first stop onwards
-    for stop in path[1:]:
-        next_node, delivered, leaving_time = stop
+        return 0
+    
+    total_time = 0
+    
+    # If using tuple format (Option A)
+    for i in range(len(path) - 1):
+        current_node, deliver_qty, departure_time = path[i]
+        next_node, _, _ = path[i + 1]
         
-        # Check if edge exists
-        edge_function = graph[current_node][next_node]
-        if edge_function is None:
-            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
-            continue # Skip this segment
-
-        # 1. Calculate Travel time
-        travel_value = edge_function(leaving_time)
+        # Get edge function
+        edge_func = graph.graph[current_node][next_node]
+        if edge_func is None:
+            raise ValueError(f"No edge {current_node} -> {next_node}")
         
-        # 2. Calculate Delivery time
-        delivery_value = sum(qty * products[prod].delivery_time for prod, qty in delivered.items())
+        # Calculate travel time using DEPARTURE time from current node (correct!)
+        travel_time = edge_func(departure_time) * truck.modifier
         
-        # 3. Apply truck modifier and add to total time
-        total_path_time += truck.modifier * travel_value + delivery_value
+        # Add service time at next node (if not depot)
+        service = service_time if next_node != 0 else 0
         
-        # Update current node for next iteration
-        current_node = next_node
-
-    return total_path_time
+        total_time += travel_time + service
+    
+    return total_time
 
 #evaluation
 def evaluation(graph, trucks, products, solution):
