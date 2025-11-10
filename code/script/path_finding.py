@@ -269,7 +269,11 @@ def leaving_time_mutation(graph, trucks, products, solution):
 
 #global mutation
 def random_possible_mutation(graph, trucks, products, current_solution):
-     # Generate a random number between 0 and 1
+    """
+    Randomly choose one type of mutation (cycle, delivery, or leaving time)
+    with weighted probabilities, and apply it to the current solution.
+    """
+    # Generate a random number between 0 and 1
     p = r.random()
 
     if p < 0.2:
