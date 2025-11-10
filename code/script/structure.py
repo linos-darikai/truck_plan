@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import dill
+import math as m
 import vrplib
 
 ##########################################################################################################
@@ -63,50 +64,177 @@ class Truck:
         self.used_volume += total_volume
         self.used_weight += total_weight
         print(f"{quantity} x {product.name} added to the truck {self.truck_type}.")
-# endregion
-class Node: 
-    def __init__(self, demand):
-        self.demand = demand # we can add types here
 
+def generate_random_truck(products):
+    """
+    Generate a random truck based on the given list of products.
+    Each truck has a random type, allowed products, capacity limits, and modifier.
+    """
+    truck_types = [
+        "Light Truck",
+        "Medium Truck",
+        "Heavy Truck",
+        "Refrigerated Truck",
+        "Tanker Truck",
+        "Flatbed Truck"
+    ]
+
+    # Random truck type
+    truck_type = r.choice(truck_types)
+
+    # Random allowed products
+    if len(products) == 0:
+        raise ValueError("Product list is empty. Cannot generate a truck.")
+    nb_allowed = r.randint(1, min(len(products), 4))
+    allowed_products = r.sample(list(products.keys()), nb_allowed)
+
+    # Random capacity limits
+    max_volume = r.randint(80, 250)
+    max_weight = r.randint(100, 400)
+
+    # Random modifier (time or cost)
+    modifier = round(r.uniform(0.8, 1.5), 2)
+
+    # Create the truck
+    truck = Truck(
+        truck_type=truck_type,
+        allowed_products=allowed_products,
+        max_volume=max_volume,
+        max_weight=max_weight,
+        modifier=modifier
+    )
+
+    return truck
+
+def generate_list_random_truck(products, nb_truck):
+    """
+    Generate a list of randomly configured trucks.
+
+    Args:
+        products (dict): Dictionary of products available for transport.
+        nb_truck (int): Number of trucks to generate.
+
+    Returns:
+        list: A list of Truck objects.
+    """
+    if nb_truck <= 0:
+        raise ValueError("The number of trucks must be greater than 0.")
+    if len(products) == 0:
+        raise ValueError("Product list is empty. Cannot generate trucks.")
+
+    trucks = []
+    for _ in range(nb_truck):
+        truck = generate_random_truck(products)
+        trucks.append(truck)
+
+    return trucks
+# endregion
+
+# region PRODUCT MANAGEMENT
+Product = namedtuple("Product", ["name", "volume", "weight","delivery_time"])
+
+def add_product_to_list(products_dict, name, volume, weight, delivery_time):
+    """Add a new product to the product dictionary."""
+    if name in products_dict:
+        raise ValueError(f"Product '{name}' already exists")
+
+    products_dict[name] = Product(name=name, volume=volume, weight=weight, delivery_time=delivery_time)
+
+#random
+def generate_random_product(products_dict):
+    """
+    Generate a random product and add it to the products_dict.
+    """
+    nb_products = r.randint(5, 10)
+
+    name_list = [
+    "Chaise", 
+    "Table", 
+    "Bureau", 
+    "Étagère", 
+    "Armoire", 
+    "Porte", 
+    "Fenêtre", 
+    "Lampadaire", 
+    "Coffre", 
+    "Chariot", 
+    "Palette", 
+    "Machine CNC", 
+    "Convoyeur", 
+    "Tapis roulant", 
+    "Échelle", 
+    "Véhicule utilitaire", 
+    "Réservoir", 
+    "Pompe", 
+    "Compresseur", 
+    "Équipement de soudure", 
+    "Chariot élévateur", 
+    "Conteneur", 
+    "Rouleau industriel", 
+    "Scie à ruban", 
+    "Perceuse industrielle"
+]
+    name_allready_chose = []
+
+    for _ in range(nb_products):
+
+        name = r.choice(name_list)
+        i = 1
+        name_m = f"{name}{i}"
         
+        while name_m in name_allready_chose:
+            i += 1
+            name_m = f"{name}{i}"
+
+        name_allready_chose.append(name_m)
+
+        volume = round(r.uniform(0.5, 7), 2)
+        weight = round(r.uniform(0.5, 10), 2)
+        delivery_time = round(r.uniform(0, 0.5), 1)
+
+        add_product_to_list(products_dict, name_m, volume, weight, delivery_time)
+    return
+# endregion
+
+# region GRAPH
+class Node: 
+    def __init__(self, demand = None, products_dict = {}):
+        if demand != None:
+            self.demand = demand # we can add types here
+        else:
+            if not products_dict:
+                raise RuntimeError("Aucun produit n'a été ajouté ! Veuillez ajouter au moins un produit avant de lancer le système.")
+            else:
+                self.demand = {next(iter(products_dict)):1}
+    
+def random_node(products):
+    if not products:
+        raise ValueError("Product dictionary is empty. Cannot create random node.")
+    
+    nb_products = r.randint(1,min(len(products),5))
+    selected_products = r.sample(list(products.keys()), nb_products)
+
+    demand = {p: r.randint(1, 20) for p in selected_products}
+    n = Node(demand = demand)
+    return n
+       
 class Graph:
     def __init__(self):
         self.time_line = 24
-        self.matrix = None
+        self.graph = None
         self.nodes = []
-        self_instance = None
+        self.instance = None
         pass
+
     def __str__(self):
         """
         Display the graph into string
         """
-        return
-    def load_from_file(self, file_name):
-        """
-        This is a function that is to load the graph from the CSV from the website 
-        we need to model that situation into our graph and be able to load.
-        Check the data from CSV
-        """
-        path = f"../media/instances/{file_name}"
-        instance = vrplib.read_instance(path)
-        self.instance = instance
-        n = len(instance['node_coord'])
-        graph = [[None for _ in range(n)] for _ in range(n)]
-        nodes = []
-        for i in range(len(instance['node_coord'])):
-            for k in range(len(instance['node_coord'] + 1)):
-                if i != k and not graph[i][k]:
-                    n_range = r.randint(0, 20)
-                    amp_range = r.uniform(0.1, 2.0)
-                    graph[i][k] = self.create_time_function(period=24,n_terms=n_range)
-                else:
-                    graph[i][k] = None
-            new_node = Node(instance['demand'][i])
-            nodes.append(new_node)
-        self.matrix = graph
-        self.nodes = nodes
-        return
-    
+        self.plot_instance_graph(t = 0)
+        return ""
+
+
+    #compute the value of edge
     def create_time_function(self, period, n_terms = 4, amp_range = (1,5)):
         """
         Create a positive periodic time function using cosine components:
@@ -125,175 +253,221 @@ class Graph:
             return val
         return f
 
-    def is_strongly_connected(self, graph):
-        """Check if the directed graph is strongly connected."""
-        def bfs(start):
-            visited = [False]*len(graph)
-            queue = deque([start])
-            visited[start]=True
-            while queue:
-                node = queue.popleft()
-                for neighbor in graph[node]:
-                    if neighbor < start:
-                        return True
-                    if not visited[neighbor]:
-                        visited[neighbor]=True
-                        queue.append(neighbor)
-            return all(visited)
+    def distance_function (self, coord1, coord2):
+        """
+        create a positiove constant function as value the distance between coord1 and coord2
+        """
+        x = (coord1[0]-coord2[0])**2
+        y = (coord1[1]-coord2[1])**2
+        def  f(t):
+            return m.sqrt(x+y)
+        return f
 
-        for i in range(len(graph)):
-            if not bfs(i):
-                return False
-        return True
 
-    def create_connected_matrix(self, n_nodes=5, period = 24):
-        """Generate a random strongly connected directed graph with time-dependent weights."""
-        graph = [{} for _ in range(n_nodes)]
-        for i in range(n_nodes):
-            for j in range(n_nodes):
-                if i != j and r.random()<0.6:
-                    graph[i][j] = self.create_time_function(period)
-        while not self.is_strongly_connected(graph):
-            i, j = r.sample(range(n_nodes), 2)
-            if j not in graph[i]:
-                graph[i][j] = self.create_time_function(period)
+    #load from the instance given
+    def load_from_file(self, file_name):
+        """
+        This is a function that is to load the graph from the CSV from the website 
+        we need to model that situation into our graph and be able to load.
+        Check the data from CSV
+        """
+        path = f"../media/instances/{file_name}"
+        instance = vrplib.read_instance(path)
+        self.instance = instance
+        print(instance)
+        n = len(instance['node_coord'])
+        graph = [[None for _ in range(n)] for _ in range(n)]
+        nodes = []
+        for i in range(n):
+            for j in range(n):
+                if i != j:
+                    graph[i][j] = self.distance_function(instance['node_coord'][i],instance['node_coord'][j]) #use the distance as weight
+                else:
+                    graph[i][j] = None
+            new_node = Node()
+            nodes.append(new_node)
         self.graph = graph
-        return graph
+        self.nodes = nodes
+        return
+
 
     #print
-    def plot_graph_functions(self, period = 24):
-        """Plot all time-dependent edge functions of the graph."""
-        n_nodes = len(self.matrix)
-        t_values = np.linspace(0, period, 200)
+    def print_demand(self):
+        """
+        print the list of the demand
+        """
+        for i,node in enumerate(self.nodes):
+            print(f"{i+1:03} : {node.demand}")
+        return
+    
+    def print_function(self,na,nb):
+        """
+        print the cost function link to the edge between the nodes na and nb.
+        """
+        if self.graph[na][nb] == None:
+            raise ValueError(f"This edge ({na}, {nb}) doesn't exist or has no function.")
+        
+        x = np.linspace(0, 24, 200)
+        y = np.array([self.graph[na][nb](xi) for xi in x])
 
-        fig, axes = plt.subplots(n_nodes, n_nodes, figsize=(3*n_nodes, 3*n_nodes), num = "Time functions")
-
-        # Ensure axes is 2D array for consistent indexing
-        if n_nodes == 1:
-            axes = np.array([[axes]])
-        elif axes.ndim == 1:
-            axes = axes.reshape((n_nodes, n_nodes))
-
-        for i in range(n_nodes):
-            for j in range(n_nodes):
-                ax = axes[i, j]
-                if i == j or j not in self.graph[i]:
-                    y_values = np.zeros_like(t_values)
-                else:
-                    f = self.matrix[i][j]
-                    y_values = np.array([f(t) for t in t_values])
-
-                ax.plot(t_values, y_values)
-                ax.set_title(f"{i} → {j}")
-                ax.set_ylim(0, max(y_values.max(), 1)*1.2)
-                ax.grid(True)
-
-        plt.tight_layout()
-
-  
-    def plot_instance_graph(self, graph=None, t=None):
+        plt.plot(x, y)
+        plt.xlabel('Time (t)')
+        plt.xlim(0, 24)
+        plt.ylabel('Cost')
+        plt.ylim(0, np.max(y) * 1.1 )
+        plt.title(f'Graph of the function between {na-1} {nb-1}')
+        plt.grid(True)
+        plt.show()
+        
+    def plot_instance_graph(self, t=None):
         """
         Visualize a VRP instance as a complete graph using real coordinates.
         
         instance: dict from vrplib.read_instance()
-        graph:    optional adjacency matrix or dict structure with time functions
         t:        optional time parameter to evaluate time-dependent edges
         """
-
-        coords = self.instance["node_coord"]
-        demands = self.instance.get("demand", None)
-        n = len(coords)
-
-        # Convert coordinates to a NetworkX position dict
-        pos = {i: (coords[i][0], coords[i][1]) for i in range(n)}
-        # note: vrplib nodes start at 1, Python indexing starts at 0
+        if self.instance is not None and "node_coord" in self.instance:
+            coords = self.instance["node_coord"]
+            n = len(coords)
+            pos = {i+1: (coords[i][0], coords[i][1]) for i in range(n)}
+        elif self.graph is not None:
+            n = len(self.graph)
+            pos = nx.circular_layout(range(1, n+1))
+        else:
+            raise ValueError("Graph data not found. Please load or generate a graph first.")
 
         G = nx.DiGraph()
 
-        # Add nodes with demand labels
+        # Add nodes with IDs 1..N
         for i in range(n):
-            label = f"{i}" if demands is None else f"{i}\n(d={demands[i]})"
-            G.add_node(i, label=label)
+            G.add_node(i+1)  # node IDs 1-based
 
-        # Add edges (complete graph)
-        edge_labels = {}
+        # Add edges
         for i in range(n):
             for j in range(n):
-                if i != j:
-                    G.add_edge(i, j)
-                    if graph and graph[i][j]:
-                        f = graph[i][j]["time_func"]
-                        if t is not None:
-                            edge_labels[(i, j)] = f"{f(t):.1f}"
+                if i != j and self.graph[i][j] is not None:
+                    u, v = i+1, j+1  # convert 0-based index to 1-based node ID
+                    if t is not None:
+                        # Calculate label value
+                        val = self.graph[i][j](t) if callable(self.graph[i][j]) else self.graph[i][j]
+                        label = round(val, 2)
+                        G.add_edge(u, v, name=label)
+                    else:
+                        G.add_edge(u, v)
 
+        # Draw graph nodes
         plt.figure("VRP Graph", figsize=(10, 8))
         nx.draw(
-            G, pos,
+            G,
+            pos=pos,
             with_labels=True,
-            labels={i: G.nodes[i]["label"] for i in G.nodes},
             node_color="lightblue",
             node_size=900,
             arrowsize=20
         )
 
-        if edge_labels:
-            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8)
+        # Draw edge labels if t is given
+        if t is not None:
+            edge_labels = nx.get_edge_attributes(G, 'name')
+            nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 
         plt.title("VRP Instance with Coordinates")
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.show()
 
-    #save
-    def save_graph_pickle(self, path):
-        """Save the graph object to a file using pickle."""
-        with open(path, "wb") as f:
-            dill.dump(self.graph, f)
 
-    def load_graph_pickle(self, path):
-        """Load the graph object from a pickle file."""
-        with open(path, "rb") as f:
-            return dill.load(f)
+    #random
+    def is_strongly_connected(self):
+        """Check if the directed graph is strongly connected."""
+        n = len(self.nodes)
 
+        def bfs(start):
+            visited = [False]*n
+            queue = deque([start])
+            visited[start]=True
+            while queue:
+                node = queue.popleft()
+                for neighbor, val in enumerate(self.graph[node]):
+                    if val is not None:
+                        if neighbor < start:
+                            return True
+                        if not visited[neighbor]:
+                            visited[neighbor]=True
+                            queue.append(neighbor)
+            return all(visited)
 
+        for i in range(n):
+            if not bfs(i):
+                return False
+        return True
 
-
-
-
-
-
-
-
-
-
-# region PRODUCT MANAGEMENT
-Product = namedtuple("Product", ["name", "volume", "weight","delivery_time"])
-
-def add_product_to_list(products_dict, name, volume, weight, delivery_time):
-    """Add a new product to the product dictionary."""
-    if name in products_dict:
-        raise ValueError(f"Product '{name}' already exists")
-
-    products_dict[name] = Product(name=name, volume=volume, weight=weight, delivery_time=delivery_time)
+    def create_connected_matrix(self, productes, nb_nodes):
+        """Generate a random strongly connected directed graph with time-dependent weights."""
+        self.nodes = [random_node(productes, productes) for _ in range(nb_nodes)]
+        self.graph = [[None for _ in range(nb_nodes)] for _ in range(nb_nodes)]
+        for i in range(nb_nodes):
+            for j in range(nb_nodes):
+                if i != j and r.random()<0.6:
+                    self.graph[i][j] = self.create_time_function(self.time_line)
+        while not self.is_strongly_connected():
+            i, j = r.sample(range(nb_nodes), 2)
+            if j not in self.graph[i]:
+                self.graph[i][j] = self.create_time_function(self.time_line)
+        return
 # endregion
 
+# region INSTANCE
+def create_random_instance(nb_nodes = 5, nb_truck = 2):
+    products_dict = {}
+    generate_random_product(products_dict)
 
-# region GRAPH & TIME FUNCTION
-#creation
-#DEMAND MANAGEMENT  ISMISSING-----------------------------------
+    g = Graph()
+    g.create_connected_matrix(products_dict, nb_nodes)
 
 
+    trucks = generate_list_random_truck(products_dict, nb_truck)
 
-#endregion
+    instance = {"product": products_dict, "graph": g, "trucks": trucks}
+    return instance
 
+def save_instance(instance, filename="instance"):
+    """
+    Save a generated instance (products, graph, trucks, etc.) to a file using dill.
+
+    Args:
+        instance (dict): The instance to save.
+        filename (str): The name of the file to save it to.
+    """
+    path = "..//media//test//" + filename + ".pkl"
+    with open(path, "wb") as f:
+        dill.dump(instance, f)
+
+def load_instance(filename="instance"):
+    """
+    Load a previously saved instance from a dill file.
+
+    Args:
+        filename (str): The name of the file to load.
+
+    Returns:
+        dict: The loaded instance.
+    """
+    path = "..//media//test//" + filename + ".pkl"
+    with open(path, "rb") as f:
+        instance = dill.load(f)
+    return instance
+# endregion
 
 # ============================
 #        MAIN / TEST
 # ============================
 
 if __name__ == "__main__":
-    # --- Products ---
-    g = Graph()
-    g.load_from_file('A-n32-k5.vrp')
-    #g.plot_graph_functions()
-    g.plot_instance_graph()
+    i = create_random_instance(5,2)
+    save_instance(i,"N5B2")
+    i["graph"].plot_instance_graph()
+    i_bis = load_instance("N5B2")
+    i_bis["graph"].plot_instance_graph()
+
+
