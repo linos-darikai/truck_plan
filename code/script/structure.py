@@ -7,7 +7,8 @@ import networkx as nx
 import dill
 import math as m
 import vrplib
-import path_finding
+from path_finding import hill_climbing
+
 
 ##########################################################################################################
 ###########################################################################################################
@@ -221,7 +222,7 @@ def random_node(products):
        
 class Graph:
     def __init__(self):
-        self.time_line = 24
+        self.time_line = 1440
         self.graph = None
         self.nodes = []
         self.instance = None
@@ -464,12 +465,9 @@ def load_instance(filename="instance"):
 #        MAIN / TEST
 # ============================
 
-# if __name__ == "__main__":
-#     i = create_random_instance(5,2)
-#     save_instance(i,"N5B2")
-#     i["graph"].plot_instance_graph()
-#     i_bis = load_instance("N5B2")
-#     i_bis["graph"].plot_instance_graph()
-
-
-# ------------------------------------------------------
+if __name__ == "__main__":
+    i = create_random_instance(5,2)
+    save_instance(i,"N5B2")
+    i["graph"].plot_instance_graph()
+    i_bis = load_instance("N5B2")
+    i_bis["graph"].plot_instance_graph()

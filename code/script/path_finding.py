@@ -1,13 +1,43 @@
+
+
+
+
+
+
+
+
+
+
+
+
 import structure
 import random as r
 import copy
-from collections import deque # Import deque for the Tabu List
+
+#time printer
+def print_hour(hour):
+    """
+    Convert a fractional hour into hours and minutes and print it.
+    """
+    print(f"{int(hour//1)}h {int(hour % 1* 60)}min")
+    return
 
 
 def get_path_travel_time(graph, truck, path, units='hours'):
     """
     Calculate the total *travel time* for a single truck's path, 
     excluding delivery times.
+
+    Args:
+        graph (list): The graph matrix with edge functions.
+        truck (Truck): The truck object assigned to this path.
+        path (list): A list of tuples:
+            (node_index, products_delivered_dict, leaving_time)
+        units (str): The desired output format ('hours' or 'minutes').
+    
+    Returns:
+        float or int: The total travel time in the specified units.
+                     (float for 'hours', int for 'minutes')
     """
     total_travel_time_hours = 0
     # No travel time if path is empty or just has the starting node
@@ -23,8 +53,7 @@ def get_path_travel_time(graph, truck, path, units='hours'):
         # Check if edge exists
         edge_function = graph[current_node][next_node]
         if edge_function is None:
-            # We print a warning but don't stop, as the path might be random
-            # print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
+            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
             continue # Skip this segment
 
         # 1. Calculate Travel time
@@ -47,6 +76,16 @@ def get_path_travel_time(graph, truck, path, units='hours'):
 def calculate_path_time(graph, truck, products, path):
     """
     Calculate the total time (travel + delivery) for a single truck's path.
+
+    Args:
+        graph (list): The graph matrix with edge functions.
+        truck (Truck): The truck object assigned to this path.
+        products (dict): The dictionary of all products.
+        path (list): A list of tuples:
+            (node_index, products_delivered_dict, leaving_time)
+    
+    Returns:
+        float: The total time for the path in hours.
     """
     total_path_time = 0
     # No travel time if path is empty or just has the starting node
@@ -62,7 +101,7 @@ def calculate_path_time(graph, truck, products, path):
         # Check if edge exists
         edge_function = graph[current_node][next_node]
         if edge_function is None:
-            # print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
+            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
             continue # Skip this segment
 
         # 1. Calculate Travel time
@@ -85,6 +124,9 @@ def evaluation(graph, trucks, products, solution):
     """
     Evaluate a solution and return the maximum total delivery time among all trucks.
     Does NOT verify feasibility.
+    
+    solution: list of truck paths, each path is a list of tuples:
+        (node_index, products_delivered_dict, leaving_time)
     """
     time_each_path = []
 
@@ -96,6 +138,7 @@ def evaluation(graph, trucks, products, solution):
 
     # Return 0 if there are no paths, otherwise return the max time
     return max(time_each_path) if time_each_path else 0
+
 def feasability(graph, trucks, products, solution):
     """
     Verify if a proposed solution is feasible.
@@ -164,7 +207,6 @@ def feasability(graph, trucks, products, solution):
 
     return True, "OK ✅"
 
-
 #random possible solution
 def random_possible_solution(graph, trucks, products):
     """
@@ -176,26 +218,14 @@ def random_possible_solution(graph, trucks, products):
     
     for truck in trucks:
         path = []
-        # Start at the depot (node 0)
-        path.append((0, {}, 0.0)) # Node 0, no delivery, leaving at t=0
-        
-        # Visit a random sample of other nodes
-        num_visits = r.randint(1, n_nodes - 1)
-        visited_nodes = r.sample(range(1, n_nodes), num_visits)  # random node order, excluding depot
-        
-        last_time = 0.0
+        visited_nodes = r.sample(range(n_nodes), n_nodes)  # random node order
         for node in visited_nodes:
             # Random delivery quantities within allowed products
             delivered = {}
-            if truck.allowed_products:
-                for prod_name in truck.allowed_products:
-                    delivered[prod_name] = r.randint(0, 2)  # small quantity for testing
-            
-            # Leaving time is just a random value after the last
-            leaving_time = last_time + r.uniform(1.0, 3.0) 
+            for prod_name in truck.allowed_products:
+                delivered[prod_name] = r.randint(0, 2)  # small quantity for testing
+            leaving_time = r.uniform(0, 24)  # random leaving time
             path.append((node, delivered, leaving_time))
-            last_time = leaving_time
-            
         solution.append(path)
     
     return solution
@@ -211,10 +241,22 @@ def cycle_mutation(graph, truckId, products, solution):
 #change the number of delivery object of 1 node
 def _delivery_mutation(graph, trucks, products, current_solution):
     """
-    (HELPER) Generates a "neighbor" solution by randomly changing the delivery quantity
+    Generates a "neighbor" solution by randomly changing the delivery quantity
     of one product at one stop for one truck.
     """
     # 1. Create a deep copy to avoid changing the original
+    # Checks 
+    # - Truck exists
+    # - Stop exists (not depot)
+    # - Product is allowed for truck
+    # - Quantity does not go negative
+    # If any check fails, return the copy unchanged
+    # Otherwise, apply the mutation and return the new solution
+    # Randomly +1 or -1 to the quantity
+    # If -1 would go negative, set to 0 instead
+    # Return the new solution
+    # If any error occurs, return the copy unchanged
+    
     new_solution = copy.deepcopy(current_solution)
 
     try:
@@ -239,8 +281,6 @@ def _delivery_mutation(graph, trucks, products, current_solution):
              if not products: return new_solution # No products to deliver
              product_to_mutate = r.choice(list(products.keys()))
         else:
-             # Make sure list is not empty
-             if not list(truck.allowed_products): return new_solution
              product_to_mutate = r.choice(list(truck.allowed_products))
 
         # 5. Get the stop data
@@ -267,20 +307,28 @@ def _delivery_mutation(graph, trucks, products, current_solution):
         # Catch potential errors from empty lists and just return the copy
         pass
     except Exception as e:
-        # print(f"Error in _delivery_mutation: {e}")
-        pass
+        print(f"Error in delivery_mutation: {e}")
         
     return new_solution
 
 def _transfer_delivery_mutation(graph, trucks, products, current_solution):
     """
-    (HELPER) Generates a "neighbor" solution by transferring a single delivery 
+    Generates a "neighbor" solution by transferring a single delivery 
     (one product at one stop) from one truck to another.
     
     This only works if the second truck already visits that same node
     and is allowed to carry the product.
     """
     # 1. Create a deep copy to avoid changing the original
+    # Things to check:
+    # - At least 2 trucks exist
+    # - Truck A has at least one stop with deliveries
+    # - Truck B visits that same node
+    # - Truck B is allowed to carry the product
+    # If any check fails, return the copy unchanged
+    # Otherwise, perform the transfer and return the new solution
+    # If any error occurs, return the copy unchanged
+    
     new_solution = copy.deepcopy(current_solution)
     
     try:
@@ -308,8 +356,6 @@ def _transfer_delivery_mutation(graph, trucks, products, current_solution):
         # 5. Pick a product from that delivery
         product_to_move = r.choice(list(delivered_A.keys()))
         qty_to_move = delivered_A[product_to_move]
-        if qty_to_move == 0:
-             return new_solution # No quantity to move
 
         # 6. Check if Truck B can even carry this product
         if truck_B.allowed_products and product_to_move not in truck_B.allowed_products:
@@ -329,8 +375,8 @@ def _transfer_delivery_mutation(graph, trucks, products, current_solution):
 
         # 9. Perform the transfer!
         
-        # Remove from A (or set to 0)
-        delivered_A[product_to_move] = 0
+        # Remove from A
+        del delivered_A[product_to_move]
         # Update stop A in the path
         path_A[stop_A_idx] = (node_to_move_from, delivered_A, time_A)
 
@@ -344,42 +390,68 @@ def _transfer_delivery_mutation(graph, trucks, products, current_solution):
         # Catch potential errors from empty lists
         pass
     except Exception as e:
-        # print(f"Error in _transfer_delivery_mutation: {e}")
-        pass
+        print(f"Error in transfer_delivery_mutation: {e}")
         
     return new_solution
-
-
-#change the leaving time of 1 node
-def leaving_time_mutation(graph, trucks, products, solution):
-    return
-
-#global mutation
+ #global mutation
 def random_possible_mutation(graph, trucks, products, current_solution):
     """
-    Selects a random mutation type and applies it to create a new
-    "neighbor" solution.
+    Randomly choose one type of mutation (cycle, delivery, or leaving time)
+    and apply it to the current solution.
     """
-    
-    # List of all available mutation functions
-    # Add more mutations to this list as they are created
-    available_mutations = [
-        _delivery_mutation,
-        _transfer_delivery_mutation
-        # cycle_mutation, # <-- Add this once it's implemented
-        # leaving_time_mutation, # <-- Add this once it's implemented
+    mutation_functions = [
+        cycle_mutation,
+        delivery_mutation,
+        leaving_time_mutation
     ]
-    
-    # 1. Choose a random mutation
-    chosen_mutation = r.choice(available_mutations)
-    
-    # 2. Apply the chosen mutation
+
+    # Pick one mutation randomly
+    chosen_mutation = r.choice(mutation_functions)
+
+    # Apply it and return the new solution
     new_solution = chosen_mutation(graph, trucks, products, current_solution)
-    
+
     return new_solution
 
-#hillpath   
-# (This is another name for a local search algorithm)
+#hillclimbing 
+def hill_climbing(graph, trucks, products, max_iterations=1000):
+    """
+    Hill Climbing for VRP using your existing mutation functions.
+
+    Parameters:
+        graph      : adjacency matrix or dict with time functions
+        trucks     : list of Truck objects
+        products   : dict of Product objects
+        max_iterations : number of iterations to perform
+    Returns:
+        best_solution : list of truck paths
+        best_score    : evaluation score of the best solution
+    """
+    # Step 1: Generate an initial random solution
+    current_solution = random_possible_solution(graph, trucks, products)
+    best_solution = current_solution
+    best_score = evaluation(graph, trucks, products, best_solution)
+
+    for iteration in range(max_iterations):
+        # Step 2: Generate a neighbor using a random mutation
+        neighbor_solution = random_possible_mutation(graph, trucks, products, current_solution)
+
+        # Step 3: Evaluate the neighbor
+        neighbor_score = evaluation(graph, trucks, products, neighbor_solution)
+
+        # Step 4: If neighbor is better, move to neighbor
+        if neighbor_score < best_score:  # assuming lower is better (time/cost)
+            best_solution = neighbor_solution
+            best_score = neighbor_score
+            current_solution = neighbor_solution
+            # Optional: print progress
+            print(f"Iteration {iteration+1}: Improved score = {best_score}")
+        else:
+            # Stay at current_solution if no improvement
+            current_solution = current_solution
+
+    return best_solution, best_score
+  
 
 #tabou
 def tabu_search(graph, node_list, trucks, products, initial_solution, 
@@ -472,56 +544,3 @@ def tabu_search(graph, node_list, trucks, products, initial_solution,
     print(f"--- Tabu Search Finished ---")
     print(f"Final Best Score: {best_score:.2f}")
     return best_solution, best_score
-
-
-# --- TEST BLOCK ---
-if __name__ == "__main__":
-    print("--- Running Test Block ---")
-    
-    # 1. Create a random instance
-    try:
-        # We need to import the function from structure.py
-        instance = structure.create_random_instance(nb_nodes=5, nb_truck=2)
-    except Exception as e:
-        print(f"\nAn error occurred while creating instance: {e}")
-        exit()
-
-    products = instance["product"]
-    graph = instance["graph"].graph  # Get the graph matrix
-    node_list = instance["graph"].nodes # Get the list of Node objects
-    trucks = instance["trucks"]
-    
-    if not trucks:
-        print("No trucks were created. Exiting test.")
-        exit()
-                
-    # --- Run Tabu Search ---
-    
-    # 1. Generate a starting solution
-    start_solution = random_possible_solution(graph, trucks, products)
-    start_score = evaluation(graph, trucks, products, start_solution)
-    
-    # 2. Run the search
-    # These parameters can be tuned:
-    ITERATIONS = 200       # Total number of steps
-    NEIGHBORS_TO_CHECK = 10  # How many mutations to check per step
-    TABU_TENURE = 7          # How long to remember a score
-    
-    final_solution, final_score = tabu_search(
-        graph, node_list, trucks, products, start_solution,
-        num_iterations=ITERATIONS,
-        neighbors_to_check=NEIGHBORS_TO_CHECK,
-        tabu_tenure=TABU_TENURE
-    )
-    
-    # 3. Print Final Results
-    print("\n--- Final Optimization Results ---")
-    print(f"Starting Score: {start_score:.2f} hours")
-    print(f"Final Score:    {final_score:.2f} hours")
-    
-    improvement = start_score - final_score
-    if improvement > 0.01: # Use a small epsilon to avoid floating point noise
-        print(f"IMPROVEMENT of {improvement:.2f} hours found!")
-    else:
-        print("No significant improvement found over the random starting solution.")
-        
