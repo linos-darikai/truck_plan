@@ -195,7 +195,7 @@ def generate_random_product(products_dict):
 
 # region GRAPH
 class Node: 
-    def __init__(self, demand = None):
+    def __init__(self, demand = None, products_dict):
         if demand != None:
             self.demand = demand # we can add types here
         else:
@@ -401,7 +401,7 @@ class Graph:
 
     def create_connected_matrix(self, productes, nb_nodes):
         """Generate a random strongly connected directed graph with time-dependent weights."""
-        self.nodes = [random_node(productes) for _ in range(nb_nodes)]
+        self.nodes = [random_node(productes, productes) for _ in range(nb_nodes)]
         self.graph = [[None for _ in range(nb_nodes)] for _ in range(nb_nodes)]
         for i in range(nb_nodes):
             for j in range(nb_nodes):
