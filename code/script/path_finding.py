@@ -1,12 +1,13 @@
 import structure
 import random as r
+import copy as c
 
 #time printer
 def print_hour(hour):
     """
     Convert a fractional hour into hours and minutes and print it.
     """
-    print(f"{int(hour//1)}h {int(hour % 1* 60)}min")
+    print(f"{int((hour // 60) // 24)}d {int((hour // 60) % 24)}h {int(hour % 60)}min")
     return
 
 
@@ -44,7 +45,7 @@ def evaluation(graph, trucks, products, solution):
 
     return max(time_each_path)
 
-def feasability(graph, trucks, products, solution):
+def feasability(graph, trucks, products, solution):#need to check
     """
     Verify if a proposed solution is feasible.
 
@@ -139,12 +140,58 @@ def random_possible_solution(graph, trucks, products):
 
 #random possible mutation
 #add node to the cycle of 1 node
-def cycle_mutation(graph, truckId, products, solution):
-    """
-    Transform the cycle of a path of a truck...
-    1. Transforming to a possi
-    """
-    return
+
+def cycle_mutation(solution):
+    """for a compleat graph"""
+
+    new_solution = c.deepcopy(solution)
+
+    truck_id = r.randint(0, len(new_solution)-1)
+    route = new_solution[truck_id]
+    nb_deliveries = len(route) - 2
+
+    if nb_deliveries == 0:
+        while nb_deliveries != 0:
+            truck_id = r.randint(0, len(new_solution)-1)
+            route = new_solution[truck_id]
+            nb_deliveries = len(route) - 2
+
+    elif nb_deliveries == 1:
+        action = r.choice(["move"])
+    else:
+        action = r.choice(["move", "swap"])
+
+    # --- MOVE ---
+    if action == "move":
+        truck2 = r.randint(0, len(new_solution)-1)
+        while truck2 == truck_id:
+            truck2 = r.randint(0, len(new_solution)-1)
+        route2 = new_solution[truck2]
+
+        node_idx = r.randint(1, len(route)-2)
+        node = route.pop(node_idx)
+
+        if len(route2) <= 2:
+            insert_idx = 1
+        else:
+            insert_idx = r.randint(1, len(route2)-1)
+
+        route2.insert(insert_idx, node)
+
+
+        new_solution[truck_id] = route
+        new_solution[truck2] = route2
+        return new_solution
+
+    # --- SWAP ---
+    elif action == "swap":
+        i, j = sorted(r.sample(range(1, len(route)-1), 2))
+        route[i], route[j] = route[j], route[i]
+        new_solution[truck_id] = route
+        return new_solution
+
+    return new_solution
+
 #change the number of delivery object of 1 node
 def delivery_mutation(graph, trucks, products, solution):
     return
@@ -154,12 +201,8 @@ def leaving_time_mutation(graph, trucks, products, solution):
 
 #global mutation
 def random_possible_mutation(graph, trucks, products, curent_solution):
-
-
     return
 
 #hillpath   
 
 #tabou
-
-

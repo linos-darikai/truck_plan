@@ -220,7 +220,7 @@ def random_node(products):
        
 class Graph:
     def __init__(self):
-        self.time_line = 24
+        self.time_line = 1440
         self.graph = None
         self.nodes = []
         self.instance = None
