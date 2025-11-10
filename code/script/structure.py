@@ -110,33 +110,83 @@ class Graph:
         return f
 
 
-    #load from the instance given
-    def load_from_file(self, file_name):
+    def load_from_vrplib(self, file_path):
         """
-        This is a function that is to load the graph from the CSV from the website 
-        we need to model that situation into our graph and be able to load.
-        Check the data from CSV
+        Load VRP instance from vrplib file.
+        
+        Args:
+            file_path: Path to .vrp file
+        
+        Returns:
+            dict: Instance info (num_nodes, total_demand, capacity, num_vehicles)
         """
-        path = f"../media/instances/{file_name}"
-        instance = vrplib.read_instance(path)
+        print(f"\nLoading VRP instance: {file_path}")
+        
+        # Read instance
+        instance = vrplib.read_instance(file_path)
         self.instance = instance
-        print(instance)
+        
+        # Get dimensions
         n = len(instance['node_coord'])
-        graph = [[None for _ in range(n)] for _ in range(n)]
-        nodes = []
+        print(f"Nodes: {n}")
+        
+        # Create nodes with demands
+        self.nodes = []
+        
+        if 'demand' in instance:
+            demands = instance['demand']
+            for i in range(n):
+                demand = demands[i] if i < len(demands) else 0
+                node = Node(node_id=i, demand=demand)
+                self.nodes.append(node)
+        else:
+            # No demand info - create default
+            self.nodes.append(Node(node_id=0, demand=0))  # Depot
+            for i in range(1, n):
+                self.nodes.append(Node(node_id=i, demand=r.randint(5, 20)))
+        
+        # Calculate total demand
+        total_demand = sum(node.demand for node in self.nodes[1:])
+        print(f"Total demand: {total_demand}")
+        
+        # Create edge functions based on Euclidean distances
+        coords = instance['node_coord']
+        self.graph = [[None] * n for _ in range(n)]
+        
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    graph[i][j] = self.distance_function(instance['node_coord'][i],instance['node_coord'][j]) #use the distance as weight
-                else:
-                    graph[i][j] = None
-            new_node = Node()
-            nodes.append(new_node)
-        self.graph = graph
-        self.nodes = nodes
-        return
-
-
+                    # Calculate distance
+                    dx = coords[i][0] - coords[j][0]
+                    dy = coords[i][1] - coords[j][1]
+                    distance = m.sqrt(dx**2 + dy**2)
+                    
+                    # Create time function
+                    # Option 1: Use your existing create_time_function
+                    self.graph[i][j] = self.create_time_function(self.time_line)
+                    
+                    # Option 2: Use distance-based function (simpler)
+                    # self.graph[i][j] = lambda t, d=distance: d * (1 + 0.1 * np.sin(2*np.pi*t/1440))
+        
+        # Extract instance info
+        vehicle_capacity = instance.get('capacity', 100)
+        
+        # Extract number of vehicles from name (e.g., "A-n32-k5" -> 5)
+        num_vehicles = None
+        if 'name' in instance:
+            name = instance['name']
+            if '-k' in name.lower():
+                try:
+                    num_vehicles = int(name.lower().split('-k')[1].split('.')[0])
+                except:
+                    pass
+        
+        return {
+            'num_nodes': n,
+            'total_demand': total_demand,
+            'vehicle_capacity': vehicle_capacity,
+            'num_vehicles': num_vehicles
+        }
     #print
     def print_demand(self):
         """
