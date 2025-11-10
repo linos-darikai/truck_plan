@@ -227,7 +227,7 @@ def cycle_mutation(graph, truckId, products, solution):
     """
     return
 #change the number of delivery object of 1 node
-def delivery_mutation(graph, trucks, products, current_solution):
+def _delivery_mutation(graph, trucks, products, current_solution):
     """
     Generates a "neighbor" solution by randomly changing the delivery quantity
     of one product at one stop for one truck.
@@ -299,7 +299,7 @@ def delivery_mutation(graph, trucks, products, current_solution):
         
     return new_solution
 
-def transfer_delivery_mutation(graph, trucks, products, current_solution):
+def _transfer_delivery_mutation(graph, trucks, products, current_solution):
     """
     Generates a "neighbor" solution by transferring a single delivery 
     (one product at one stop) from one truck to another.
@@ -387,11 +387,28 @@ def leaving_time_mutation(graph, trucks, products, solution):
     return
 
 #global mutation
-def random_possible_mutation(graph, trucks, products, curent_solution):
-
-
-    return
-
+def random_possible_mutation(graph, trucks, products, current_solution):
+    """
+    Selects a random mutation type and applies it to create a new
+    "neighbor" solution.
+    """
+    
+    # List of all available mutation functions
+    # Add more mutations to this list as they are created
+    available_mutations = [
+        _delivery_mutation,
+        _transfer_delivery_mutation
+        # cycle_mutation, # <-- Add this once it's implemented
+        # leaving_time_mutation, # <-- Add this once it's implemented
+    ]
+    
+    # 1. Choose a random mutation
+    chosen_mutation = r.choice(available_mutations)
+    
+    # 2. Apply the chosen mutation
+    new_solution = chosen_mutation(graph, trucks, products, current_solution)
+    
+    return new_solution
 #hillpath   
 
 #tabou
