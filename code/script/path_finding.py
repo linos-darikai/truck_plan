@@ -1,16 +1,4 @@
-
-
-
-
-
-
-
-
-
-
-
-
-import structure
+from pyparsing import deque
 import random as r
 import copy
 
@@ -230,14 +218,59 @@ def random_possible_solution(graph, trucks, products):
     
     return solution
 
+
 #random possible mutation
 #add node to the cycle of 1 node
-def cycle_mutation(graph, truckId, products, solution):
-    """
-    Transform the cycle of a path of a truck...
-    1. Transforming to a possi
-    """
-    return
+def _cycle_mutation(solution):
+    """for a compleat graph"""
+
+    new_solution = c.deepcopy(solution)
+
+    truck_id = r.randint(0, len(new_solution)-1)
+    route = new_solution[truck_id]
+    nb_deliveries = len(route) - 2
+
+    if nb_deliveries == 0:
+        while nb_deliveries != 0:
+            truck_id = r.randint(0, len(new_solution)-1)
+            route = new_solution[truck_id]
+            nb_deliveries = len(route) - 2
+
+    elif nb_deliveries == 1:
+        action = r.choice(["move"])
+    else:
+        action = r.choice(["move", "swap"])
+
+    # --- MOVE ---
+    if action == "move":
+        truck2 = r.randint(0, len(new_solution)-1)
+        while truck2 == truck_id:
+            truck2 = r.randint(0, len(new_solution)-1)
+        route2 = new_solution[truck2]
+
+        node_idx = r.randint(1, len(route)-2)
+        node = route.pop(node_idx)
+
+        if len(route2) <= 2:
+            insert_idx = 1
+        else:
+            insert_idx = r.randint(1, len(route2)-1)
+
+        route2.insert(insert_idx, node)
+
+
+        new_solution[truck_id] = route
+        new_solution[truck2] = route2
+        return new_solution
+
+    # --- SWAP ---
+    elif action == "swap":
+        i, j = sorted(r.sample(range(1, len(route)-1), 2))
+        route[i], route[j] = route[j], route[i]
+        new_solution[truck_id] = route
+        return new_solution
+
+
 #change the number of delivery object of 1 node
 def _delivery_mutation(graph, trucks, products, current_solution):
     """
@@ -310,6 +343,59 @@ def _delivery_mutation(graph, trucks, products, current_solution):
         print(f"Error in delivery_mutation: {e}")
         
     return new_solution
+
+#change the leaving time of 1 node
+def _leaving_time_mutation(graph, trucks, products, solution):
+    """modify the leaving time of a radom node."""
+
+    new_solution = c.deepcopy(solution)
+
+    while True:
+        truck_id = r.randint(0, len(new_solution) - 1)
+        route = new_solution[truck_id]
+
+        if len(route) <= 2:
+            # We dont have a node to modify, we try with an other truck
+            continue
+
+        # --- selection ---
+        node_idx = r.randint(1, len(route) - 2)
+        node = route[node_idx]
+        prev_node = route[node_idx - 1]
+        next_node = route[node_idx + 1] if node_idx + 1 < len(route) else None
+
+        prev_id, _, prev_leave = prev_node
+        node_id, node_deliver, _ = node
+
+        # --- Lower bound ---
+        travel_prev = graph.graph[prev_id][node_id](prev_leave) * trucks[truck_id].modifier
+        service_cur = sum(products[p].delivery_time * qty for p, qty in node_deliver.items())
+       
+        lower_bound = prev_leave + travel_prev + service_cur
+
+        # --- Upper bound ---
+        if next_node is not None:
+            next_id, _, next_leave = next_node
+            service_next = sum(products[p].delivery_time * qty for p, qty in next_node.items())
+            upper_bound = next_leave - service_next
+        else:
+            upper_bound = lower_bound + 1440
+
+        #Créer une liste de temps possibles sauf l’actuel
+        possible_times = [t for t in range(int(lower_bound), int(upper_bound) + int(max(graph.graph[node_id][next_id])), 5)
+                          if upper_bound - t - graph.graph[node_id][next_id](t) > 0]
+
+        # --- validity of the interval ---
+        if possible_times != []:
+            continue
+
+        # --- Mutation effective ---
+        new_leave_time = r.choice(possible_times)
+        new_node = (node_id, node_deliver, new_leave_time)
+        route[node_idx] = new_node
+        new_solution[truck_id] = route
+        return new_solution
+
 
 def _transfer_delivery_mutation(graph, trucks, products, current_solution):
     """
@@ -400,9 +486,10 @@ def random_possible_mutation(graph, trucks, products, current_solution):
     and apply it to the current solution.
     """
     mutation_functions = [
-        cycle_mutation,
-        delivery_mutation,
-        leaving_time_mutation
+        _cycle_mutation,
+        _delivery_mutation,
+        _transfer_delivery_mutation,
+        _leaving_time_mutation
     ]
 
     # Pick one mutation randomly
@@ -454,6 +541,7 @@ def hill_climbing(graph, trucks, products, max_iterations=1000):
   
 
 #tabou
+
 def tabu_search(graph, node_list, trucks, products, initial_solution, 
                 num_iterations, neighbors_to_check, tabu_tenure):
     """
