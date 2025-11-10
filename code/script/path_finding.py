@@ -137,6 +137,78 @@ def evaluation(graph, trucks, solution, service_time=0.5):
     
     return max_time
 
+def feasability(graph, trucks, solution):
+    """
+    Check if solution is feasible.
+    
+    Checks:
+    1. All routes start and end at depot (node 0)
+    2. No truck exceeds capacity
+    3. All customer demands satisfied exactly once
+    4. All edges exist
+    
+    Args:
+        graph: Graph object
+        trucks: List of Truck objects  
+        solution: List of paths
+    
+    Returns:
+        (bool, str): (is_feasible, message)
+    """
+    n_nodes = len(graph.nodes)
+    
+    # Track deliveries per node
+    deliveries = [0] * n_nodes
+    
+    for truck_idx, path in enumerate(solution):
+        truck = trucks[truck_idx]
+        
+        if not path or len(path) < 2:
+            continue
+        
+        # Extract node sequence
+        if isinstance(path[0], tuple):
+            nodes = [p[0] for p in path]
+            delivers = [p[1] for p in path]
+        else:  # Dict format
+            nodes = [stop['node'] for stop in path]
+            delivers = [stop['deliver'] for stop in path]
+        
+        # Check 1: Starts at depot
+        if nodes[0] != 0:
+            return False, f"Truck {truck_idx}: Doesn't start at depot"
+        
+        # Check 2: Ends at depot
+        if nodes[-1] != 0:
+            return False, f"Truck {truck_idx}: Doesn't end at depot"
+        
+        # Check 3: Edges exist
+        for i in range(len(nodes) - 1):
+            curr, next = nodes[i], nodes[i + 1]
+            if graph.graph[curr][next] is None:
+                return False, f"Truck {truck_idx}: No edge {curr} -> {next}"
+        
+        # Check 4: Capacity
+        total_load = sum(delivers[1:-1])  # Exclude depot visits
+        if total_load > truck.max_capacity:
+            return False, f"Truck {truck_idx}: Capacity exceeded ({total_load}/{truck.max_capacity})"
+        
+        # Track deliveries
+        for node, qty in zip(nodes, delivers):
+            deliveries[node] += qty
+    
+    # Check 5: All demands satisfied
+    for node_idx in range(1, n_nodes):  # Skip depot
+        node = graph.nodes[node_idx]
+        demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+        
+        if deliveries[node_idx] < demand:
+            return False, f"Node {node_idx}: Under-delivered ({deliveries[node_idx]}/{demand})"
+        if deliveries[node_idx] > demand:
+            return False, f"Node {node_idx}: Over-delivered ({deliveries[node_idx]}/{demand})"
+    
+    return True, "Solution is feasible ✅"
+
 #random possible solution
 def random_possible_solution(graph, trucks, products):#need to check
     """
