@@ -7,6 +7,7 @@ import networkx as nx
 import dill
 import math as m
 import vrplib
+import path_finding
 
 ##########################################################################################################
 ###########################################################################################################
@@ -404,7 +405,7 @@ class Graph:
 
     def create_connected_matrix(self, productes, nb_nodes):
         """Generate a random strongly connected directed graph with time-dependent weights."""
-        self.nodes = [random_node(productes, productes) for _ in range(nb_nodes)]
+        self.nodes = [random_node(productes) for _ in range(nb_nodes)]
         self.graph = [[None for _ in range(nb_nodes)] for _ in range(nb_nodes)]
         for i in range(nb_nodes):
             for j in range(nb_nodes):
@@ -463,11 +464,62 @@ def load_instance(filename="instance"):
 #        MAIN / TEST
 # ============================
 
+# if __name__ == "__main__":
+#     i = create_random_instance(5,2)
+#     save_instance(i,"N5B2")
+#     i["graph"].plot_instance_graph()
+#     i_bis = load_instance("N5B2")
+#     i_bis["graph"].plot_instance_graph()
+
+
+
+# --- TEST BLOCK ---
 if __name__ == "__main__":
-    i = create_random_instance(5,2)
-    save_instance(i,"N5B2")
-    i["graph"].plot_instance_graph()
-    i_bis = load_instance("N5B2")
-    i_bis["graph"].plot_instance_graph()
+    print("--- Running Test Block ---")
+    
+    # 1. Create a random instance
+    # Note: This requires structure.py to be in the same directory or accessible
+    try:
+        instance = create_random_instance(nb_nodes=5, nb_truck=2)
+    except Exception as e:
+        print(f"\nAn error occurred while creating instance: {e}")
+        exit()
 
+    products = instance["product"]
+    graph = instance["graph"].graph  # Get the graph matrix from the Graph object
+    trucks = instance["trucks"]
+    
+    # 2. Generate a random solution
+    solution = path_finding.random_possible_solution(graph, trucks, products)
+    
+    # 3. Select the first truck and its path for testing
+    if not trucks:
+        print("No trucks were created. Exiting test.")
+        exit()
+        
+    test_truck = trucks[0]
+    test_path = solution[0]
+    
+    print(f"\nTesting with {test_truck.truck_type} (Modifier: {test_truck.modifier})")
+    print(f"Test Path has {len(test_path)} stops.")
+    # print(f"Path details: {test_path}") # Uncomment to see the full path data
+    
 
+    # 4. Run the new functions
+    total_time = path_finding.calculate_path_time(graph, test_truck, products, test_path)
+    travel_time_hours = path_finding.get_path_travel_time(graph, test_truck, test_path, units='hours')
+    travel_time_minutes = path_finding.get_path_travel_time(graph, test_truck, test_path, units='minutes')
+    
+    # 5. Print results
+    print("\n--- Function Test Results ---")
+    print(f"Total Path Time (travel + delivery): {total_time:.2f} hours")
+    path_finding.print_hour(total_time) # Also print as 'Xh Ymin'
+    
+    print(f"\nTotal *Travel* Time (only): {travel_time_hours:.2f} hours")
+    print(f"Total *Travel* Time (only): {travel_time_minutes} minutes")
+    
+    # 6. Test the main evaluation function
+    max_time = path_finding.evaluation(graph, trucks, products, solution)
+    print("\n--- Evaluation Test ---")
+    print(f"Max time for *all* trucks (makespan): {max_time:.2f} hours")
+    path_finding.print_hour(max_time)
