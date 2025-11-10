@@ -110,92 +110,32 @@ def calculate_path_time(graph, truck, path, service_time=0.5):
     return total_time
 
 #evaluation
-def evaluation(graph, trucks, products, solution):
+def evaluation(graph, trucks, solution, service_time=0.5):
     """
-    Evaluate a solution and return the maximum total delivery time among all trucks.
-    Does NOT verify feasibility.
+    Evaluate solution quality (minimize maximum route time).
     
-    solution: list of truck paths, each path is a list of tuples:
-        (node_index, products_delivered_dict, leaving_time)
+    Args:
+        graph: Graph object
+        trucks: List of Truck objects
+        solution: List of paths (one per truck)
+        service_time: Service time per customer
+    
+    Returns:
+        float: Maximum time among all routes (makespan)
     """
-    time_each_path = []
-
-    for i, path in enumerate(solution):
-        truck = trucks[i]
-        # Use the function to calculate total time (travel + delivery)
-        path_time = calculate_path_time(graph, truck, products, path)
-        time_each_path.append(path_time)
-
-    # Return 0 if there are no paths, otherwise return the max time
-    return max(time_each_path) if time_each_path else 0
-
-def feasability(graph, trucks, products, solution):#need to check
-    """
-    Verify if a proposed solution is feasible.
-
-    Conditions checked:
-    1. The path between nodes exists in the graph.
-    2. Trucks never exceed their weight or volume capacity.
-    3. Trucks only deliver what they have loaded.
-    4. All delivery demands at each node are fully satisfied.
-    """
-
-    # --- initialize total deliveries tracker per node
-    deliveries_done = {node: {p: 0 for p in products} for node in range(len(graph))}
-
-    # --- iterate over each truck
-    for t_idx, truck in enumerate(trucks):
-        used_volume = 0
-        used_weight = 0
-        cargo = {p: 0 for p in products}  # what's currently on the truck
-
-        path = solution[t_idx]
-        if not path:
-            continue
-
-        # --- check edges
-        current_node = path[0][0]
-        for stop_idx in range(1, len(path)):
-            next_node, delivered, leaving_time = path[stop_idx]
-
-            # 1️⃣ check if edge exists
-            if next_node not in graph[current_node]:
-                return False, f"Truck {truck.truck_type}: No edge {current_node} → {next_node}"
-
-            # 2️⃣ check deliveries
-            for pname, qty in delivered.items():
-                if pname not in products:
-                    return False, f"Truck {truck.truck_type}: Unknown product '{pname}'"
-
-                # truck permission
-                if truck.allowed_products and pname not in truck.allowed_products:
-                    return False, f"Truck {truck.truck_type}: Not allowed to carry '{pname}'"
-
-                # can't deliver more than onboard
-                if cargo[pname] < qty:
-                    return False, f"Truck {truck.truck_type}: Tried to deliver more '{pname}' than loaded"
-
-                # deliver
-                cargo[pname] -= qty
-                deliveries_done[next_node][pname] += qty
-
-            current_node = next_node
-
-        # 3️⃣ check truck capacity (for all items it carried)
-        used_volume = sum(products[p].volume * cargo[p] for p in cargo)
-        used_weight = sum(products[p].weight * cargo[p] for p in cargo)
-        if used_volume > truck.max_volume:
-            return False, f"Truck {truck.truck_type}: Volume exceeded ({used_volume}/{truck.max_volume})"
-        if used_weight > truck.max_weight:
-            return False, f"Truck {truck.truck_type}: Weight exceeded ({used_weight}/{truck.max_weight})"
-
-    # 4️⃣ check that all deliveries are completed
-    for node in range(len(graph.nodes)):
-        for pname, needed_qty in node.demand:
-            if deliveries_done[node][pname] < needed_qty:
-                return False, f"Node {node}: Missing delivery of {needed_qty - deliveries_done[node][pname]} {pname}"
-
-    return True, "OK ✅"
+    if not solution:
+        return float('inf')
+    
+    max_time = 0
+    
+    for truck_idx, path in enumerate(solution):
+        truck = trucks[truck_idx]
+        
+        # Calculate time for this route
+        route_time = calculate_path_time(graph, truck, path, service_time)
+        max_time = max(max_time, route_time)
+    
+    return max_time
 
 #random possible solution
 def random_possible_solution(graph, trucks, products):#need to check
