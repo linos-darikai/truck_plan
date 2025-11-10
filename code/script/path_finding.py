@@ -3,14 +3,6 @@ import random as r
 import copy as c
 
 #time printer
-def print_hour(hour):
-    """
-    Convert a fractional hour into hours and minutes and print it.
-    """
-    print(f"{int((hour // 60) // 24)}d {int((hour // 60) % 24)}h {int(hour % 60)}min")
-    return
-
-
 def get_path_travel_time(graph, truck, path, units='hours'):
     """
     Calculate the total *travel time* for a single truck's path, 
@@ -60,7 +52,6 @@ def get_path_travel_time(graph, truck, path, units='hours'):
     # Default to hours
     return total_travel_time_hours
 
-
 def calculate_path_time(graph, truck, products, path):
     """
     Calculate the total time (travel + delivery) for a single truck's path.
@@ -105,7 +96,6 @@ def calculate_path_time(graph, truck, products, path):
         current_node = next_node
 
     return total_path_time
-
 
 #evaluation
 def evaluation(graph, trucks, products, solution):
@@ -188,8 +178,8 @@ def feasability(graph, trucks, products, solution):#need to check
             return False, f"Truck {truck.truck_type}: Weight exceeded ({used_weight}/{truck.max_weight})"
 
     # 4️⃣ check that all deliveries are completed
-    for node, node_demands in demands.items():
-        for pname, needed_qty in node_demands.items():
+    for node in range(len(graph.nodes)):
+        for pname, needed_qty in node.demand:
             if deliveries_done[node][pname] < needed_qty:
                 return False, f"Node {node}: Missing delivery of {needed_qty - deliveries_done[node][pname]} {pname}"
 
@@ -220,7 +210,6 @@ def random_possible_solution(graph, trucks, products):
 
 #random possible mutation
 #add node to the cycle of 1 node
-
 def cycle_mutation(solution):
     """for a compleat graph"""
 
@@ -271,7 +260,6 @@ def cycle_mutation(solution):
         return new_solution
 
     return new_solution
-
 #change the number of delivery object of 1 node
 def delivery_mutation(graph, trucks, products, solution):
     return
@@ -281,6 +269,7 @@ def leaving_time_mutation(graph, trucks, products, solution):
 
 #global mutation
 def random_possible_mutation(graph, trucks, products, curent_solution):
+    
     return
 
 #hillpath   
