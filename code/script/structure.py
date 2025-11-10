@@ -220,7 +220,7 @@ def random_node(products):
        
 class Graph:
     def __init__(self):
-        self.time_line = 24
+        self.time_line = 1440
         self.graph = None
         self.nodes = []
         self.instance = None
@@ -404,7 +404,7 @@ class Graph:
 
     def create_connected_matrix(self, productes, nb_nodes):
         """Generate a random strongly connected directed graph with time-dependent weights."""
-        self.nodes = [random_node(productes, productes) for _ in range(nb_nodes)]
+        self.nodes = [random_node(productes) for _ in range(nb_nodes)]
         self.graph = [[None for _ in range(nb_nodes)] for _ in range(nb_nodes)]
         for i in range(nb_nodes):
             for j in range(nb_nodes):
@@ -465,9 +465,9 @@ def load_instance(filename="instance"):
 
 if __name__ == "__main__":
     i = create_random_instance(5,2)
-    save_instance(i,"N5B2")
+    save_instance(i,"N5T2")
     i["graph"].plot_instance_graph()
-    i_bis = load_instance("N5B2")
+    i_bis = load_instance("N5T2")
     i_bis["graph"].plot_instance_graph()
 
 
