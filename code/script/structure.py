@@ -198,7 +198,7 @@ def generate_random_product(products_dict):
 
 # region GRAPH
 class Node: 
-    def __init__(self, demand = None, products_dict):
+    def __init__(self, demand = None, products_dict = {}):
         if demand != None:
             self.demand = demand # we can add types here
         else:
@@ -221,7 +221,7 @@ def random_node(products):
 class Graph:
     def __init__(self):
         self.time_line = 24
-        self.matrix = None
+        self.graph = None
         self.nodes = []
         self.instance = None
         pass
@@ -286,7 +286,7 @@ class Graph:
                     graph[i][j] = None
             new_node = Node()
             nodes.append(new_node)
-        self.matrix = graph
+        self.graph = graph
         self.nodes = nodes
         return
 
@@ -296,7 +296,7 @@ class Graph:
         """
         print the list of the demand
         """
-        for i,node in enumerate(g.nodes):
+        for i,node in enumerate(self.nodes):
             print(f"{i+1:03} : {node.demand}")
         return
     
@@ -304,11 +304,11 @@ class Graph:
         """
         print the cost function link to the edge between the nodes na and nb.
         """
-        if self.matrix[na][nb] == None:
+        if self.graph[na][nb] == None:
             raise ValueError(f"This edge ({na}, {nb}) doesn't exist or has no function.")
         
         x = np.linspace(0, 24, 200)
-        y = np.array([self.matrix[na][nb](xi) for xi in x])
+        y = np.array([self.graph[na][nb](xi) for xi in x])
 
         plt.plot(x, y)
         plt.xlabel('Time (t)')
