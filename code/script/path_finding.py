@@ -317,10 +317,63 @@ def leaving_time_mutation(graph, trucks, products, solution):
         return new_solution
 
 #global mutation
-def random_possible_mutation(graph, trucks, products, curent_solution):
-    
-    return
+def random_possible_mutation(graph, trucks, products, current_solution):
+    """
+    Randomly choose one type of mutation (cycle, delivery, or leaving time)
+    and apply it to the current solution.
+    """
+    mutation_functions = [
+        cycle_mutation,
+        delivery_mutation,
+        leaving_time_mutation
+    ]
 
-#hillpath   
+    # Pick one mutation randomly
+    chosen_mutation = r.choice(mutation_functions)
+
+    # Apply it and return the new solution
+    new_solution = chosen_mutation(graph, trucks, products, current_solution)
+
+    return new_solution
+
+#hillclimbing 
+def hill_climbing(graph, trucks, products, max_iterations=1000):
+    """
+    Hill Climbing for VRP using your existing mutation functions.
+
+    Parameters:
+        graph      : adjacency matrix or dict with time functions
+        trucks     : list of Truck objects
+        products   : dict of Product objects
+        max_iterations : number of iterations to perform
+    Returns:
+        best_solution : list of truck paths
+        best_score    : evaluation score of the best solution
+    """
+    # Step 1: Generate an initial random solution
+    current_solution = random_possible_solution(graph, trucks, products)
+    best_solution = current_solution
+    best_score = evaluation(graph, trucks, products, best_solution)
+
+    for iteration in range(max_iterations):
+        # Step 2: Generate a neighbor using a random mutation
+        neighbor_solution = random_possible_mutation(graph, trucks, products, current_solution)
+
+        # Step 3: Evaluate the neighbor
+        neighbor_score = evaluation(graph, trucks, products, neighbor_solution)
+
+        # Step 4: If neighbor is better, move to neighbor
+        if neighbor_score < best_score:  # assuming lower is better (time/cost)
+            best_solution = neighbor_solution
+            best_score = neighbor_score
+            current_solution = neighbor_solution
+            # Optional: print progress
+            print(f"Iteration {iteration+1}: Improved score = {best_score}")
+        else:
+            # Stay at current_solution if no improvement
+            current_solution = current_solution
+
+    return best_solution, best_score
+  
 
 #tabou
