@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import dill
 import vrplib
+from path_finding import hill_climbing
+
 
 # region TRUCK MANAGEMENT
 class Truck:
@@ -294,3 +296,19 @@ if __name__ == "__main__":
     g.load_from_file('A-n32-k5.vrp')
     #g.plot_graph_functions()
     g.plot_instance_graph()
+    # --- Example trucks ---
+    trucks = [
+        Truck("T1", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
+        Truck("T2", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
+        Truck("T3", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120)
+    ]
+
+    # --- Example products ---
+    products = {}
+    add_product_to_list(products, "P1", volume=10, weight=5, delivery_time=0.5)
+    add_product_to_list(products, "P2", volume=20, weight=10, delivery_time=0.8)
+
+    # --- Run Hill Climbing ---
+    best_solution, best_score = hill_climbing(g.graph, trucks, products, max_iterations=500)
+    print("\nBest Score:", best_score)
+    print("Best Solution:", best_solution)
