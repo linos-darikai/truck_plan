@@ -38,7 +38,6 @@ def get_path_travel_time(graph, truck, path, units='hours'):
                      (float for 'hours', int for 'minutes')
     """
     total_travel_time_hours = 0
-    # No travel time if path is empty or just has the starting node
     if not path or len(path) < 2:
         return 0 
 
@@ -209,26 +208,103 @@ def feasability(graph, trucks, solution):
     
     return True, "Solution is feasible ✅"
 
-#random possible solution
-def random_possible_solution(graph, trucks, products):#need to check
+# generate feasible solution for the problem
+def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
     """
-    Generate a random feasible-looking solution.
-    Each truck visits a random sequence of nodes and delivers random allowed products.
-    """
-    solution = []
-    n_nodes = len(graph)
+    Generate feasible initial solution using nearest neighbor.
     
-    for truck in trucks:
+    Strategy:
+    - Start from depot
+    - Greedily add nearest customer that fits capacity
+    - Return to depot
+    
+    Returns:
+        List of paths (one per truck)
+    """
+    n_nodes = len(graph.nodes)
+    customers = set(range(1, n_nodes))  # Exclude depot
+    solution = []
+    
+    truck_idx = 0
+    
+    while customers and truck_idx < len(trucks):
+        truck = trucks[truck_idx]
+        
+        # Build route for this truck
+        route = [0]  # Start at depot
+        current_node = 0
+        current_load = 0
+        current_time = 0
+        
+        while customers:
+            # Find nearest customer that fits
+            best_customer = None
+            best_distance = float('inf')
+            
+            for customer in customers:
+                # Get demand (handle both int and dict)
+                node = graph.nodes[customer]
+                demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+                
+                # Check capacity
+                if current_load + demand <= truck.max_capacity:
+                    # Calculate distance
+                    dist = graph.graph[current_node][customer](current_time)
+                    if dist < best_distance:
+                        best_distance = dist
+                        best_customer = customer
+            
+            if best_customer is None:
+                break  # No more customers fit
+            
+            # Add to route
+            node = graph.nodes[best_customer]
+            demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+            
+            # Calculate times
+            travel_time = graph.graph[current_node][best_customer](current_time) * truck.modifier
+            current_time += travel_time + service_time
+            current_load += demand
+            
+            route.append(best_customer)
+            customers.remove(best_customer)
+            current_node = best_customer
+        
+        # Return to depot
+        route.append(0)
+        
+        # Convert to solution format
         path = []
-        visited_nodes = r.sample(range(n_nodes), n_nodes)  # random node order
-        for node in visited_nodes:
-            # Random delivery quantities within allowed products
-            delivered = {}
-            for prod_name in truck.allowed_products:
-                delivered[prod_name] = r.randint(0, 2)  # small quantity for testing
-            leaving_time = r.uniform(0, 24)  # random leaving time
-            path.append((node, delivered, leaving_time))
+        curr_time = 0
+        load = current_load
+        
+        for i, node in enumerate(route):
+            if i == 0:
+                # Depot start
+                path.append((0, 0, 0))
+            elif i == len(route) - 1:
+                # Depot end
+                travel = graph.graph[route[i-1]][0](curr_time) * truck.modifier
+                curr_time += travel
+                path.append((0, 0, curr_time))
+            else:
+                # Customer
+                if i > 0:
+                    travel = graph.graph[route[i-1]][node](curr_time) * truck.modifier
+                    curr_time += travel
+                
+                node_obj = graph.nodes[node]
+                demand = node_obj.demand if isinstance(node_obj.demand, int) else sum(node_obj.demand.values())
+                
+                curr_time += service_time
+                path.append((node, demand, curr_time))
+                load -= demand
+        
         solution.append(path)
+        truck_idx += 1
+    
+    if customers:
+        raise RuntimeError(f"Cannot assign all customers: {len(customers)} remaining")
     
     return solution
 
