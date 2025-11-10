@@ -1,4 +1,4 @@
-import structure
+from structure import *
 import random as r
 import copy 
 
@@ -182,7 +182,7 @@ def feasability(graph, trucks, solution):
     Args:
         graph: Graph object
         trucks: List of Truck objects  
-        solution: List of paths
+        solution: List of route dicts
     
     Returns:
         (bool, str): (is_feasible, message)
@@ -192,33 +192,34 @@ def feasability(graph, trucks, solution):
     # Track deliveries per node
     deliveries = [0] * n_nodes
     
-    for truck_idx, path in enumerate(solution):
-        truck = trucks[truck_idx]
-        
-        if not path or len(path) < 2:
+    for truck_idx, route_dict in enumerate(solution):
+        # FIX: route_dict is the dict, route is the list inside it
+        if not route_dict or 'route' not in route_dict:
             continue
         
-        # Extract node sequence
-        if isinstance(path[0], tuple):
-            nodes = [p[0] for p in path]
-            delivers = [p[1] for p in path]
-        else:  # Dict format
-            nodes = [stop['node'] for stop in path]
-            delivers = [stop['deliver'] for stop in path]
+        route = route_dict['route']  # <-- This is the actual route list
+        truck = trucks[truck_idx]
+        
+        if not route or len(route) < 2:
+            continue
+        
+        # Extract node sequence and deliveries from the route
+        nodes = [stop['node'] for stop in route]
+        delivers = [stop['deliver'] for stop in route]
         
         # Check 1: Starts at depot
         if nodes[0] != 0:
-            return False, f"Truck {truck_idx}: Doesn't start at depot"
+            return False, f"Truck {truck_idx}: Doesn't start at depot (starts at {nodes[0]})"
         
         # Check 2: Ends at depot
         if nodes[-1] != 0:
-            return False, f"Truck {truck_idx}: Doesn't end at depot"
+            return False, f"Truck {truck_idx}: Doesn't end at depot (ends at {nodes[-1]})"
         
         # Check 3: Edges exist
         for i in range(len(nodes) - 1):
-            curr, next = nodes[i], nodes[i + 1]
-            if graph.graph[curr][next] is None:
-                return False, f"Truck {truck_idx}: No edge {curr} -> {next}"
+            curr, next_node = nodes[i], nodes[i + 1]
+            if graph.graph[curr][next_node] is None:
+                return False, f"Truck {truck_idx}: No edge {curr} -> {next_node}"
         
         # Check 4: Capacity
         total_load = sum(delivers[1:-1])  # Exclude depot visits
@@ -232,7 +233,14 @@ def feasability(graph, trucks, solution):
     # Check 5: All demands satisfied
     for node_idx in range(1, n_nodes):  # Skip depot
         node = graph.nodes[node_idx]
-        demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+        
+        # Handle both int and dict demand
+        if isinstance(node.demand, int):
+            demand = node.demand
+        elif isinstance(node.demand, dict):
+            demand = sum(node.demand.values())
+        else:
+            demand = 0
         
         if deliveries[node_idx] < demand:
             return False, f"Node {node_idx}: Under-delivered ({deliveries[node_idx]}/{demand})"
@@ -514,7 +522,7 @@ def apply_random_mutation(solution, graph, trucks, service_time=0.5):
 
 
 #hillclimbing 
-def hill_climbing(graph, trucks, products, max_iterations=1000):
+def hill_climbing(graph, trucks, max_iterations=1000):
     """
     Hill Climbing for VRP using your existing mutation functions.
 
@@ -528,16 +536,16 @@ def hill_climbing(graph, trucks, products, max_iterations=1000):
         best_score    : evaluation score of the best solution
     """
     # Step 1: Generate an initial random solution
-    current_solution = random_possible_solution(graph, trucks, products)
+    current_solution = generate_feasible_initial_solution(graph, trucks)
     best_solution = current_solution
-    best_score = evaluation(graph, trucks, products, best_solution)
+    best_score = evaluation(graph, trucks, best_solution)
 
     for iteration in range(max_iterations):
         # Step 2: Generate a neighbor using a random mutation
-        neighbor_solution = random_possible_mutation(graph, trucks, products, current_solution)
+        neighbor_solution = apply_random_mutation(current_solution,graph, trucks)
 
         # Step 3: Evaluate the neighbor
-        neighbor_score = evaluation(graph, trucks, products, neighbor_solution)
+        neighbor_score = evaluation(graph, trucks, neighbor_solution)
 
         # Step 4: If neighbor is better, move to neighbor
         if neighbor_score < best_score:  # assuming lower is better (time/cost)
@@ -558,3 +566,32 @@ def hill_climbing(graph, trucks, products, max_iterations=1000):
 #########################################################################################################
 #########################################################################################################
 
+if __name__ == "__main__":
+    # Load instance
+    g = Graph()
+    g.load_from_vrplib('../media/instances/X-n101-k25.vrp')
+    
+    # Create trucks (simplified)
+    trucks = [
+        Truck(truck_id=i, max_capacity=200, modifier=1.0)
+        for i in range(30)
+    ]
+    
+    # Generate initial solution
+    solution = generate_feasible_initial_solution(g, trucks, service_time=0.5)
+    
+    # Check it's feasible
+    is_feas, msg = feasability(g, trucks, solution)
+    print(f"Initial solution feasible: {is_feas}")
+    print(f"Message: {msg}")
+    
+    # Try a mutation
+    new_solution = apply_random_mutation(solution, g, trucks, service_time=0.5)
+    
+    # Check mutated solution
+    is_feas, msg = feasability(g, trucks, new_solution)
+    print(f"Mutated solution feasible: {is_feas}")
+    
+    # Run hill climbing
+    best_sol, best_score = hill_climbing(g, trucks, max_iterations=1000)
+    print(f"Best score: {best_score}")

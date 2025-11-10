@@ -7,7 +7,7 @@ import networkx as nx
 import dill
 import math as m
 import vrplib
-from path_finding import hill_climbing
+from path_finding import hill_climbing, feasability, apply_random_mutation, generate_feasible_initial_solution
 
 
 ##########################################################################################################
@@ -136,7 +136,7 @@ class Graph:
         if 'demand' in instance:
             demands = instance['demand']
             for i in range(n):
-                demand = demands[i] if i < len(demands) else 0
+                demand = int(demands[i]) if i < len(demands) else 0
                 node = Node(node_id=i, demand=demand)
                 self.nodes.append(node)
         else:
@@ -360,25 +360,4 @@ def load_instance(filename="instance"):
 # ============================
 
 # --- TEST BLOCK ---
-if __name__ == "__main__":
-    # --- Products ---
-    g = Graph()
-    g.load_from_file('A-n32-k5.vrp')
-    #g.plot_graph_functions()
-    g.plot_instance_graph()
-    # --- Example trucks ---
-    trucks = [
-        Truck("T1", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
-        Truck("T2", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
-        Truck("T3", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120)
-    ]
-
-    # --- Example products ---
-    products = {}
-    add_product_to_list(products, "P1", volume=10, weight=5, delivery_time=0.5)
-    add_product_to_list(products, "P2", volume=20, weight=10, delivery_time=0.8)
-
-    # --- Run Hill Climbing ---
-    best_solution, best_score = hill_climbing(g.graph, trucks, products, max_iterations=500)
-    print("\nBest Score:", best_score)
-    print("Best Solution:", best_solution)
+# In structure.py or main file
