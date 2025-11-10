@@ -472,6 +472,38 @@ def load_instance(filename="instance"):
 #     i_bis["graph"].plot_instance_graph()
 
 
+# ------------------------------------------------------
+
+def check_mutation_result(graph, trucks, products, solution):
+    """
+    Check and print total time and travel time (hours & minutes)
+    for each truck after mutation.
+
+    Parameters:
+    - graph: adjacency matrix or graph object
+    - trucks: list of Truck objects
+    - products: list or dict of product data
+    - solution: list of truck paths (after mutation)
+    """
+    print("\n=== Checking Mutation Result ===")
+    for idx, (truck, path) in enumerate(zip(trucks, solution)):
+        print(f"\nTruck {idx + 1}: {truck.truck_type} (Modifier: {truck.modifier})")
+        print(f"Path length: {len(path)} stops")
+
+        total_time = path_finding.calculate_path_time(graph, truck, products, path)
+        travel_time_hours = path_finding.get_path_travel_time(graph, truck, path, units='hours')
+        travel_time_minutes = path_finding.get_path_travel_time(graph, truck, path, units='minutes')
+
+        print(f"  • Total Path Time (travel + delivery): {total_time:.2f} hours")
+        print("    ", end=""); path_finding.print_hour(total_time)
+        print(f"  • Travel Time (only): {travel_time_hours:.2f} hours")
+        print(f"  • Travel Time (only): {travel_time_minutes} minutes")
+
+    # You can also evaluate the full solution (makespan)
+    max_time = path_finding.evaluation(graph, trucks, products, solution)
+    print("\n=== Overall Evaluation ===")
+    print(f"Max time for all trucks (makespan): {max_time:.2f} hours")
+    path_finding.print_hour(max_time)
 
 # --- TEST BLOCK ---
 if __name__ == "__main__":
@@ -496,30 +528,34 @@ if __name__ == "__main__":
     if not trucks:
         print("No trucks were created. Exiting test.")
         exit()
-        
-    test_truck = trucks[0]
-    test_path = solution[0]
-    
-    print(f"\nTesting with {test_truck.truck_type} (Modifier: {test_truck.modifier})")
-    print(f"Test Path has {len(test_path)} stops.")
-    # print(f"Path details: {test_path}") # Uncomment to see the full path data
-    
 
-    # 4. Run the new functions
-    total_time = path_finding.calculate_path_time(graph, test_truck, products, test_path)
-    travel_time_hours = path_finding.get_path_travel_time(graph, test_truck, test_path, units='hours')
-    travel_time_minutes = path_finding.get_path_travel_time(graph, test_truck, test_path, units='minutes')
-    
-    # 5. Print results
-    print("\n--- Function Test Results ---")
-    print(f"Total Path Time (travel + delivery): {total_time:.2f} hours")
-    path_finding.print_hour(total_time) # Also print as 'Xh Ymin'
-    
-    print(f"\nTotal *Travel* Time (only): {travel_time_hours:.2f} hours")
-    print(f"Total *Travel* Time (only): {travel_time_minutes} minutes")
-    
-    # 6. Test the main evaluation function
+    # 4. Test the main evaluation function
     max_time = path_finding.evaluation(graph, trucks, products, solution)
     print("\n--- Evaluation Test ---")
     print(f"Max time for *all* trucks (makespan): {max_time:.2f} hours")
     path_finding.print_hour(max_time)
+
+    
+    # Generate one solution
+    original_solution = path_finding.random_possible_solution(graph, trucks, products)
+
+    # --- Test Delivery Mutation ---
+    mutated_solution = path_finding.delivery_mutation(graph, trucks, products, original_solution)
+
+    original_solution_2 = path_finding.random_possible_solution(graph, trucks, products)
+
+    # --- Test Transfer Mutation ---
+    mutated_solution_2 = path_finding.transfer_delivery_mutation(graph, trucks, products, original_solution_2)
+    
+    if original_solution != mutated_solution:
+        print("Test PASSED: random_possible_solution ran and returned a new solution copy.")
+        check_mutation_result(graph, trucks, products, mutated_solution)
+    
+
+    if original_solution_2 != mutated_solution_2:
+        print("Test PASSED: transfer_delivery_mutation ran and returned a new solution copy.")
+        check_mutation_result(graph, trucks, products, mutated_solution_2)
+    
+        
+
+

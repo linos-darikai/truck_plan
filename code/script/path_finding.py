@@ -1,5 +1,6 @@
 import structure
 import random as r
+import copy
 
 #time printer
 def print_hour(hour):
@@ -187,8 +188,8 @@ def feasability(graph, trucks, products, solution):
             return False, f"Truck {truck.truck_type}: Weight exceeded ({used_weight}/{truck.max_weight})"
 
     # 4️⃣ check that all deliveries are completed
-    for node, node_demands in demands.items():
-        for pname, needed_qty in node_demands.items():
+    for node in range(len(graph.nodes)):
+        for pname, needed_qty in node.demand:
             if deliveries_done[node][pname] < needed_qty:
                 return False, f"Node {node}: Missing delivery of {needed_qty - deliveries_done[node][pname]} {pname}"
 
@@ -226,8 +227,161 @@ def cycle_mutation(graph, truckId, products, solution):
     """
     return
 #change the number of delivery object of 1 node
-def delivery_mutation(graph, trucks, products, solution):
-    return
+def delivery_mutation(graph, trucks, products, current_solution):
+    """
+    Generates a "neighbor" solution by randomly changing the delivery quantity
+    of one product at one stop for one truck.
+    """
+    # 1. Create a deep copy to avoid changing the original
+    # Checks 
+    # - Truck exists
+    # - Stop exists (not depot)
+    # - Product is allowed for truck
+    # - Quantity does not go negative
+    # If any check fails, return the copy unchanged
+    # Otherwise, apply the mutation and return the new solution
+    # Randomly +1 or -1 to the quantity
+    # If -1 would go negative, set to 0 instead
+    # Return the new solution
+    # If any error occurs, return the copy unchanged
+    
+    new_solution = copy.deepcopy(current_solution)
+
+    try:
+        # 2. Pick a random truck
+        num_trucks = len(new_solution)
+        if num_trucks == 0:
+            return new_solution # Nothing to mutate
+        
+        truck_idx = r.randint(0, num_trucks - 1)
+        path = new_solution[truck_idx]
+        truck = trucks[truck_idx]
+
+        # 3. Pick a random stop (must have at least one stop after depot)
+        if len(path) < 2:
+            return new_solution # Can't mutate an empty or depot-only path
+        
+        stop_idx = r.randint(1, len(path) - 1) # Start from 1 to skip depot
+
+        # 4. Pick a random product the truck is allowed to carry
+        if not truck.allowed_products:
+             # If no restrictions, pick any product
+             if not products: return new_solution # No products to deliver
+             product_to_mutate = r.choice(list(products.keys()))
+        else:
+             product_to_mutate = r.choice(list(truck.allowed_products))
+
+        # 5. Get the stop data
+        (node, delivered_dict, time) = path[stop_idx]
+
+        # 6. Pick a change direction (+1 or -1)
+        change = r.choice([-1, 1])
+        
+        # 7. Apply the change
+        current_qty = delivered_dict.get(product_to_mutate, 0)
+        new_qty = current_qty + change
+
+        # 8. Ensure quantity is not negative
+        if new_qty < 0:
+            new_qty = 0
+            
+        # 9. Update the delivery dictionary
+        delivered_dict[product_to_mutate] = new_qty
+        
+        # 10. Put the mutated stop back into the path
+        path[stop_idx] = (node, delivered_dict, time)
+        
+    except IndexError:
+        # Catch potential errors from empty lists and just return the copy
+        pass
+    except Exception as e:
+        print(f"Error in delivery_mutation: {e}")
+        
+    return new_solution
+
+def transfer_delivery_mutation(graph, trucks, products, current_solution):
+    """
+    Generates a "neighbor" solution by transferring a single delivery 
+    (one product at one stop) from one truck to another.
+    
+    This only works if the second truck already visits that same node
+    and is allowed to carry the product.
+    """
+    # 1. Create a deep copy to avoid changing the original
+    # Things to check:
+    # - At least 2 trucks exist
+    # - Truck A has at least one stop with deliveries
+    # - Truck B visits that same node
+    # - Truck B is allowed to carry the product
+    # If any check fails, return the copy unchanged
+    # Otherwise, perform the transfer and return the new solution
+    # If any error occurs, return the copy unchanged
+    
+    new_solution = copy.deepcopy(current_solution)
+    
+    try:
+        num_trucks = len(trucks)
+        # 2. Need at least 2 trucks to transfer
+        if num_trucks < 2:
+            return new_solution 
+
+        # 3. Select two different trucks
+        truck_A_idx, truck_B_idx = r.sample(range(num_trucks), 2)
+        truck_B = trucks[truck_B_idx]
+        path_A = new_solution[truck_A_idx]
+        path_B = new_solution[truck_B_idx]
+
+        # 4. Find a delivery to move from Truck A
+        if len(path_A) < 2:
+            return new_solution # Truck A has no stops
+        
+        stop_A_idx = r.randint(1, len(path_A) - 1)
+        (node_to_move_from, delivered_A, time_A) = path_A[stop_A_idx]
+
+        if not delivered_A:
+            return new_solution # This stop has no deliveries to move
+            
+        # 5. Pick a product from that delivery
+        product_to_move = r.choice(list(delivered_A.keys()))
+        qty_to_move = delivered_A[product_to_move]
+
+        # 6. Check if Truck B can even carry this product
+        if truck_B.allowed_products and product_to_move not in truck_B.allowed_products:
+            return new_solution # "Fails" mutation, Truck B can't carry this
+
+        # 7. Find if Truck B already visits this node
+        target_stop_B_idx = -1
+        for i in range(1, len(path_B)):
+            # path_B[i][0] is the node_index for the i-th stop
+            if path_B[i][0] == node_to_move_from:
+                target_stop_B_idx = i
+                break
+
+        # 8. If not, this mutation "fails" (we don't add the stop)
+        if target_stop_B_idx == -1:
+            return new_solution # Truck B doesn't visit this node
+
+        # 9. Perform the transfer!
+        
+        # Remove from A
+        del delivered_A[product_to_move]
+        # Update stop A in the path
+        path_A[stop_A_idx] = (node_to_move_from, delivered_A, time_A)
+
+        # Add to B
+        (node_B, delivered_B, time_B) = path_B[target_stop_B_idx]
+        delivered_B[product_to_move] = delivered_B.get(product_to_move, 0) + qty_to_move
+        # Update stop B in the path
+        path_B[target_stop_B_idx] = (node_B, delivered_B, time_B)
+
+    except IndexError:
+        # Catch potential errors from empty lists
+        pass
+    except Exception as e:
+        print(f"Error in transfer_delivery_mutation: {e}")
+        
+    return new_solution
+    
 #change the leaving time of 1 node
 def leaving_time_mutation(graph, trucks, products, solution):
     return
