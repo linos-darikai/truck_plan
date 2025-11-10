@@ -376,7 +376,7 @@ corresponds to a Hamiltonian cycle in $ H $.
 So $\Pi_O$ is in NP-Hard.
 
 ---
-## III) matematical constraints
+## III) mathematical constraints
 ### III.1. remind
 We defined:
 * $T \in (\mathbb{N}^\mathbb{N}, \mathbb{N}, \mathbb{N}, \mathbb{R})^\mathbb{N}$:  
@@ -555,25 +555,79 @@ As seen in the mathematical problem modelisation, we need to have acces to 3 dat
 ### V.1 Exact solution
 Finding an exact solution to this truck routing and delivery problem is computationally infeasible for realistic instances. The problem is NP-Hard, meaning that the time required to compute the optimal solution grows exponentially with the number of trucks, products, and nodes.
 
-### V.2 Approximate solution -------------------------------------------------------------------------------------------------------
+### V.2.A Approximate solution 
 
 
-Metaheuristic
+Approximate methods, also known as **metaheuristics**, provide a more feasible alternative. Instead of guaranteeing the optimal solution, they aim to find a solution that is “good enough” within a reasonable time frame. These methods explore the search space intelligently, balancing between intensification (improving the current solution) and diversification (exploring new regions of the solution space).  
 
-Tabu Search: Use memory of visited solutions to avoid cycling and explore better solutions.
+In the context of the truck routing and delivery problem, approximate methods are particularly suitable because:
 
-Advantages:
+The problem involves multiple constraints (truck capacities, delivery times, product compatibility, and route feasibility) that make exact optimization difficult.  
 
-Can handle multiple trucks, capacity constraints, and time-dependent travel times.
+-The search space is very large, and exhaustive exploration is computationally infeasible.  
 
-Flexible: You can add constraints like truck types, product restrictions, and fuel modifiers.
+-Metaheuristics can adapt to additional constraints, such as fuel consumption or vehicle type restrictions.  
 
-Provides good approximate solutions quickly, even if not optimal.
+-They produce high-quality solutions quickly, which is essential for practical logistics applications.  
+1. **Principle of Tabu Search**  
 
+Tabu Search is a metaheuristic optimization technique used to find near-optimal solutions for complex combinatorial problems.
+
+Each solution represents a set of delivery routes for all trucks.
+At each iteration, the algorithm modifies one or more routes (for example, swapping deliveries between trucks or changing the order of visits) to reduce total cost or delivery time.  
+
+2. **Neighborhood structure**    
+
+**Problem----------------------**
+If Truck 1 serves {A, B, C} and Truck 2 serves {D, E},
+a neighboring solution could swap delivery points B and D, changing both routes and potentially improving the total cost or satisfying capacity constraints.   
+
+3. **Evaluation function**    
+
+Each new solution is evaluated using an objective function  
+The goal is to minimize this objective function while respecting all the defined constraints.  
+The objective function can be expressed as:  
+
+**Minimize TotalCost =
+TravelCost
++
+UnloadCost**
+
+The algorithm selects new solutions that improve this cost, or occasionally slightly worse ones to escape local optima.    
+
+4. **Tabu list (memory structure)** 
+
+**Problem----------------------**
+Suppose Truck 1 serves {A, B, C} and Truck 2 serves {D, E}.
+
+If the algorithm swaps deliveries A ↔ D, this move is added to the tabu list.  
+
+For the next few iterations, the algorithm cannot undo this swap, which helps it explore other route arrangements that may reduce the total travel time or satisfy capacity constraints better.    
+
+5. **Aspiration Criterion**    
+
+Even if the swap A ↔ D is tabu, it will be accepted if it produces a new best solution, the total delivery cost drops to a record low.
+This ensures that the search does not miss high-quality solutions just because they are temporarily tabu.  
+
+### V.2.B Justification for Choosing Tabu Search  
+The method allows us to generate efficient delivery routes for all trucks, respecting all constraints, while keeping computation times manageable. It strikes a balance between solution quality and practical feasibility, making it the most suitable choice for our scenario.  
+
+-Tabu Search was chosen for several reasons:  
+1-Ability to handle complex constraints.  
+2-Efficient exploration of large solution spaces.  
+3-Flexibility and adaptability.  
+4-High-quality approximate solutions in reasonable time
+
+
+
+Which mutation do we?
+
+
+
+---
 
 ## VI) next steps
 
-* search the good way to solve the problem
 * implement it
 * make a fonction which verify if the solution of the algorythm can be considered or not.
 * Performance evaluation

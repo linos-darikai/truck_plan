@@ -7,7 +7,8 @@ import networkx as nx
 import dill
 import math as m
 import vrplib
-import path_finding
+from path_finding import hill_climbing
+
 
 ##########################################################################################################
 ###########################################################################################################
@@ -466,59 +467,24 @@ def load_instance(filename="instance"):
 
 # --- TEST BLOCK ---
 if __name__ == "__main__":
-    i = create_random_instance(5,2)
-    save_instance(i,"N5T2")
-    i["graph"].plot_instance_graph()
-    i_bis = load_instance("N5T2")
-    i_bis["graph"].plot_instance_graph()
+    # --- Products ---
+    g = Graph()
+    g.load_from_file('A-n32-k5.vrp')
+    #g.plot_graph_functions()
+    g.plot_instance_graph()
+    # --- Example trucks ---
+    trucks = [
+        Truck("T1", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
+        Truck("T2", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120),
+        Truck("T3", allowed_products={"P1", "P2"}, max_volume=100, max_weight=120)
+    ]
 
+    # --- Example products ---
+    products = {}
+    add_product_to_list(products, "P1", volume=10, weight=5, delivery_time=0.5)
+    add_product_to_list(products, "P2", volume=20, weight=10, delivery_time=0.8)
 
-#if __name__ == "__main__":
-#    print("--- Running Test Block ---")
-#    
-#    # 1. Create a random instance
-#    # Note: This requires structure.py to be in the same directory or accessible
-#    try:
-#        instance = create_random_instance(nb_nodes=5, nb_truck=2)
-#    except Exception as e:
-#        print(f"\nAn error occurred while creating instance: {e}")
-#        exit()
-#
-#    products = instance["product"]
-#    graph = instance["graph"].graph  # Get the graph matrix from the Graph object
-#    trucks = instance["trucks"]
-#    
-#    # 2. Generate a random solution
-#    solution = path_finding.random_possible_solution(graph, trucks, products)
-#    
-#    # 3. Select the first truck and its path for testing
-#    if not trucks:
-#        print("No trucks were created. Exiting test.")
-#        exit()
-#        
-#    test_truck = trucks[0]
-#    test_path = solution[0]
-#    
-#    print(f"\nTesting with {test_truck.truck_type} (Modifier: {test_truck.modifier})")
-#    print(f"Test Path has {len(test_path)} stops.")
-#    # print(f"Path details: {test_path}") # Uncomment to see the full path data
-#    
-#
-#    # 4. Run the new functions
-#    total_time = path_finding.calculate_path_time(graph, test_truck, products, test_path)
-#    travel_time_hours = path_finding.get_path_travel_time(graph, test_truck, test_path, units='hours')
-#    travel_time_minutes = path_finding.get_path_travel_time(graph, test_truck, test_path, units='minutes')
-#    
-#    # 5. Print results
-#    print("\n--- Function Test Results ---")
-#    print(f"Total Path Time (travel + delivery): {total_time:.2f} hours")
-#    path_finding.print_hour(total_time) # Also print as 'Xh Ymin'
-#    
-#    print(f"\nTotal *Travel* Time (only): {travel_time_hours:.2f} hours")
-#    print(f"Total *Travel* Time (only): {travel_time_minutes} minutes")
-#    
-#    # 6. Test the main evaluation function
-#    max_time = path_finding.evaluation(graph, trucks, products, solution)
-#    print("\n--- Evaluation Test ---")
-#    print(f"Max time for *all* trucks (makespan): {max_time:.2f} hours")
-#    path_finding.print_hour(max_time)
+    # --- Run Hill Climbing ---
+    best_solution, best_score = hill_climbing(g.graph, trucks, products, max_iterations=500)
+    print("\nBest Score:", best_score)
+    print("Best Solution:", best_solution)
