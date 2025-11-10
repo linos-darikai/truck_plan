@@ -578,6 +578,7 @@ At each iteration, the algorithm modifies one or more routes (for example, swapp
 
 2. **Neighborhood structure**    
 
+**Problem----------------------**
 If Truck 1 serves {A, B, C} and Truck 2 serves {D, E},
 a neighboring solution could swap delivery points B and D, changing both routes and potentially improving the total cost or satisfying capacity constraints.   
 
@@ -587,17 +588,16 @@ Each new solution is evaluated using an objective function
 The goal is to minimize this objective function while respecting all the defined constraints.  
 The objective function can be expressed as:  
 
-**Minimize TotalCost=
-DistanceCost
+**Minimize TotalCost =
+TravelCost
 +
-FuelCost
-+
-DelayPenalties**  
+UnloadCost**
 
 The algorithm selects new solutions that improve this cost, or occasionally slightly worse ones to escape local optima.    
 
-4. **Tabu list (memory structure)**  
+4. **Tabu list (memory structure)** 
 
+**Problem----------------------**
 Suppose Truck 1 serves {A, B, C} and Truck 2 serves {D, E}.
 
 If the algorithm swaps deliveries A ↔ D, this move is added to the tabu list.  
@@ -620,26 +620,14 @@ The method allows us to generate efficient delivery routes for all trucks, respe
 
 
 
+Which mutation do we?
 
 
 
-
-------------------------------------------------------------------------------------
-
-Tabu Search: Use memory of visited solutions to avoid cycling and explore better solutions.
-
-Advantages:
-
-Can handle multiple trucks, capacity constraints, and time-dependent travel times.
-
-Flexible: You can add constraints like truck types, product restrictions, and fuel modifiers.
-
-Provides good approximate solutions quickly, even if not optimal.
-
+---
 
 ## VI) next steps
 
-* search the good way to solve the problem
 * implement it
 * make a fonction which verify if the solution of the algorythm can be considered or not.
 * Performance evaluation
