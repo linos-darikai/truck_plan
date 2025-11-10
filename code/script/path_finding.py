@@ -139,10 +139,11 @@ def random_possible_solution(graph, trucks, products):
 
 #random possible mutation
 #add node to the cycle of 1 node
-def transform_in_compleat_graph(graph):
-    return
-
-def cycle_mutation(graph, trucks, products, solution):
+def cycle_mutation(graph, truckId, products, solution):
+    """
+    Transform the cycle of a path of a truck...
+    1. Transforming to a possi
+    """
     return
 #change the number of delivery object of 1 node
 def delivery_mutation(graph, trucks, products, solution):

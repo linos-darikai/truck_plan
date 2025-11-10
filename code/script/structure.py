@@ -8,7 +8,10 @@ import dill
 import math as m
 import vrplib
 
-# region TRUCK MANAGEMENT
+##########################################################################################################
+###########################################################################################################
+###########################################################################################################
+#region Truck
 class Truck:
     """Represents a truck that can carry specific types of products with capacity limits."""
     def __init__(self, truck_type, allowed_products=None, max_volume=100, max_weight=120, modifier=1):
