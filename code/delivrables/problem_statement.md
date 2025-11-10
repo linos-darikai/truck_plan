@@ -643,6 +643,27 @@ Provides good approximate solutions quickly, even if not optimal.
 * implement it
 * make a fonction which verify if the solution of the algorythm can be considered or not.
 * Performance evaluation
+
+Tasks per schedule
+Phase 1
+* Tabue research and documantation, (H)
+* Lecture instance generation and creation of random instance , (O)
+* Tranform the time function to give real time as per path, (M)
+* evaluation, calculate the evaluation function for the solution or truck path(L)
+* feasibility of solution is the solution okay(accoring to our constraints), (L)
+
+Phase 2
+* Mutation of solution to get the neighbors of the solution
+ - by cycle
+ - by delivery size
+ - time
+* Random choosing for the mutation
+* Hill climbing
+* TABBU list
+* Simplex Comparison, to our solution
+
+PHase 3
+* perfomance and statistics
 ---
 ## VII) Sources
 ##### Theoretical References:
