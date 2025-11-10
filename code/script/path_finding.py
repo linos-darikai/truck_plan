@@ -186,7 +186,7 @@ def feasability(graph, trucks, products, solution):#need to check
     return True, "OK ✅"
 
 #random possible solution
-def random_possible_solution(graph, trucks, products):
+def random_possible_solution(graph, trucks, products):#need to check
     """
     Generate a random feasible-looking solution.
     Each truck visits a random sequence of nodes and delivers random allowed products.
@@ -259,13 +259,62 @@ def cycle_mutation(solution):
         new_solution[truck_id] = route
         return new_solution
 
-    return new_solution
+
 #change the number of delivery object of 1 node
 def delivery_mutation(graph, trucks, products, solution):
     return
+
 #change the leaving time of 1 node
 def leaving_time_mutation(graph, trucks, products, solution):
-    return
+    """modify the leaving time of a radom node."""
+
+    new_solution = c.deepcopy(solution)
+
+    while True:
+        truck_id = r.randint(0, len(new_solution) - 1)
+        route = new_solution[truck_id]
+
+        if len(route) <= 2:
+            # We dont have a node to modify, we try with an other truck
+            continue
+
+        # --- selection ---
+        node_idx = r.randint(1, len(route) - 2)
+        node = route[node_idx]
+        prev_node = route[node_idx - 1]
+        next_node = route[node_idx + 1] if node_idx + 1 < len(route) else None
+
+        prev_id, _, prev_leave = prev_node
+        node_id, node_deliver, _ = node
+
+        # --- Lower bound ---
+        travel_prev = graph.graph[prev_id][node_id](prev_leave) * trucks[truck_id].modifier
+        service_cur = sum(products[p].delivery_time * qty for p, qty in node_deliver.items())
+       
+        lower_bound = prev_leave + travel_prev + service_cur
+
+        # --- Upper bound ---
+        if next_node is not None:
+            next_id, _, next_leave = next_node
+            service_next = sum(products[p].delivery_time * qty for p, qty in next_node.items())
+            upper_bound = next_leave - service_next
+        else:
+            upper_bound = lower_bound + 1440
+
+        #Créer une liste de temps possibles sauf l’actuel
+        possible_times = [t for t in range(int(lower_bound), int(upper_bound) + int(max(graph.graph[node_id][next_id])), 5)
+                          if upper_bound - t - graph.graph[node_id][next_id](t) > 0]
+
+        # --- validity of the interval ---
+        if possible_times != []:
+            continue
+
+        # --- Mutation effective ---
+        new_leave_time = r.choice(possible_times)
+        new_node = (node_id, node_deliver, new_leave_time)
+        route[node_idx] = new_node
+        new_solution[truck_id] = route
+        return new_solution
 
 #global mutation
 def random_possible_mutation(graph, trucks, products, current_solution):

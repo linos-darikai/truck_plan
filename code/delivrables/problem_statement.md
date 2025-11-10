@@ -537,12 +537,20 @@ As seen in the mathematical problem modelisation, we need to have acces to 3 dat
    - `weight` (`int`): Weight of one unit of the product.
    - `delivery_time` (`float`): the time necessary to delivered the product
 
-3. **Graph `G`**  
-   Represented as a list of dictionaries:  
-   - `G[i][j] = f(t)` is a function returning the time-dependent weight from node `i` to node `j`.  
-   - If there is no edge from `i` to `j`, `j` is not a key in `G[i]`.
+3. **Graph `G`**
+  
+   Have has the following attributes:
+   - `time_line` (`int`): The period our cost function 
+   - `Graph` (`function list list`): Where `G[i][j] = f(t)` is a function returning the time-dependent weight from node `i` to node `j`, If there is no edge from `i` to `j`, `G[i][j] = None`.
+   - `Nodes` (`node list`) : the list of the node.
+   - `Instance` (`dict`): the dictionary of the instance given by vrplib.read_instance()
 
-4. **Solution `S`**  
+4. **Node `N`**
+ 
+   Have has the following attributes:
+   - `demands` (`dictionary`): Where the index is the name of the producte and the value is the number of them that is required.
+
+5. **Solution `S`**  
    Represented as a list of lists of tuple `(node_index, products_delivered, leaving_time)`:  
    - Each outer list corresponds to a truck.  
    - Each inner list represents the sequence of nodes visited by that truck.  
