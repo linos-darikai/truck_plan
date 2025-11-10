@@ -1,6 +1,6 @@
 import structure
 import random as r
-import copy as c
+import copy 
 
 """
 Solution new structure 
@@ -19,119 +19,152 @@ solution = [
 ]
 """
 
-
-#time printer
-def get_path_travel_time(graph, truck, path, units='hours'):
+def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
     """
-    Calculate the total *travel time* for a single truck's path, 
-    excluding delivery times.
-
-    Args:
-        graph (list): The graph matrix with edge functions.
-        truck (Truck): The truck object assigned to this path.
-        path (list): A list of tuples:
-            (node_index, products_delivered_dict, leaving_time)
-        units (str): The desired output format ('hours' or 'minutes').
-    
-    Returns:
-        float or int: The total travel time in the specified units.
-                     (float for 'hours', int for 'minutes')
-    """
-    total_travel_time_hours = 0
-    if not path or len(path) < 2:
-        return 0 
-
-    current_node = path[0][0]
-
-    # Iterate from the first stop onwards
-    for stop in path[1:]:
-        next_node, _, leaving_time = stop # Delivery info is ignored
-        
-        # Check if edge exists
-        edge_function = graph[current_node][next_node]
-        if edge_function is None:
-            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
-            continue # Skip this segment
-
-        # 1. Calculate Travel time
-        travel_value = edge_function(leaving_time)
-        
-        # 2. Apply truck modifier and add to total time
-        total_travel_time_hours += truck.modifier * travel_value
-        
-        # Update current node for next iteration
-        current_node = next_node
-
-    # Return based on desired units
-    if units == 'minutes':
-        return int(total_travel_time_hours * 60)
-    
-    # Default to hours
-    return total_travel_time_hours
-
-def calculate_path_time(graph, truck, path, service_time=0.5):
-    """
-    Calculate total time for a truck's path.
+    Create a complete route dictionary with all timing information.
+    Compatible with your Graph class structure.
     
     Args:
-        graph: Graph object with edge_functions matrix
-        truck: Truck object
-        path: List of tuples (node_id, deliver_qty, departure_time)
-             OR list of dicts (if using Option B)
+        truck_id: ID of the truck
+        node_sequence: List of node IDs [0, 3, 7, 5, 0]
+        graph: Your Graph object (with graph.graph and graph.nodes)
+        truck: Your Truck object
         service_time: Time to deliver at each customer
     
     Returns:
-        float: Total time in minutes
+        Dict with route information
     """
-    if not path or len(path) < 2:
+    route = []
+    current_time = 0
+    current_load = 0
+    
+    # Calculate total load needed for this route
+    total_load = 0
+    for node_id in node_sequence:
+        if node_id != 0:  # Skip depot
+            node = graph.nodes[node_id]
+            # Handle both int demand and dict demand
+            if isinstance(node.demand, int):
+                total_load += node.demand
+            elif isinstance(node.demand, dict):
+                total_load += sum(node.demand.values())
+            else:
+                total_load += 0
+    
+    for i, node_id in enumerate(node_sequence):
+        node = graph.nodes[node_id]
+        
+        # Get demand for this node
+        if node_id == 0:
+            demand = 0
+        elif isinstance(node.demand, int):
+            demand = node.demand
+        elif isinstance(node.demand, dict):
+            demand = sum(node.demand.values())
+        else:
+            demand = 0
+        
+        # Service time (0 at depot, constant at customers)
+        service = service_time if node_id != 0 else 0
+        
+        # Create stop info
+        stop = {
+            'node': node_id,
+            'arrival': current_time,
+            'service': service,
+            'departure': current_time + service,
+            'deliver': demand,
+            'load_after': 0  # Will calculate below
+        }
+        
+        # Calculate load after this delivery
+        if i == 0:
+            # At depot, load everything
+            current_load = total_load
+        else:
+            # Deliver at customer
+            current_load -= demand
+        
+        stop['load_after'] = current_load
+        route.append(stop)
+        
+        # Calculate travel time to next node
+        if i < len(node_sequence) - 1:
+            next_node_id = node_sequence[i + 1]
+            
+            # Get edge function from your graph structure
+            edge_func = graph.graph[node_id][next_node_id]
+            if edge_func is None:
+                raise ValueError(f"No edge from {node_id} to {next_node_id}")
+            
+            # Calculate travel time
+            travel_time = edge_func(stop['departure']) * truck.modifier
+            current_time = stop['departure'] + travel_time
+    
+    # Calculate max load (for capacity checking)
+    max_load = max(stop['load_after'] for stop in route)
+    
+    return {
+        'truck_id': truck_id,
+        'total_load': total_load,
+        'max_load': max_load,
+        'route': route
+    }
+
+
+def calculate_path_time(graph, truck, route_dict, service_time=0.5):
+    """
+    Calculate total time for a truck's path.
+    Now works with dict format.
+    """
+    if not route_dict or 'route' not in route_dict:
+        return 0
+    
+    route = route_dict['route']
+    
+    if len(route) < 2:
         return 0
     
     total_time = 0
     
-    # If using tuple format (Option A)
-    for i in range(len(path) - 1):
-        current_node, deliver_qty, departure_time = path[i]
-        next_node, _, _ = path[i + 1]
+    for i in range(len(route) - 1):
+        current_stop = route[i]
+        next_stop = route[i + 1]
+        
+        current_node = current_stop['node']
+        next_node = next_stop['node']
+        departure_time = current_stop['departure']
         
         # Get edge function
         edge_func = graph.graph[current_node][next_node]
         if edge_func is None:
             raise ValueError(f"No edge {current_node} -> {next_node}")
         
-        # Calculate travel time using DEPARTURE time from current node (correct!)
+        # Calculate travel time using DEPARTURE time from current node
         travel_time = edge_func(departure_time) * truck.modifier
         
-        # Add service time at next node (if not depot)
+        # Add service time at next node
         service = service_time if next_node != 0 else 0
         
         total_time += travel_time + service
     
     return total_time
-
-#evaluation
+###############################################################################################
+###############################################################################################
+###############################################################################################
+####################### EVALUATION AND FEASIBILITY#############################################
 def evaluation(graph, trucks, solution, service_time=0.5):
-    """
-    Evaluate solution quality (minimize maximum route time).
-    
-    Args:
-        graph: Graph object
-        trucks: List of Truck objects
-        solution: List of paths (one per truck)
-        service_time: Service time per customer
-    
-    Returns:
-        float: Maximum time among all routes (makespan)
-    """
+    """Evaluate solution quality (minimize maximum route time)."""
     if not solution:
         return float('inf')
     
     max_time = 0
     
-    for truck_idx, path in enumerate(solution):
-        truck = trucks[truck_idx]
+    for route_dict in solution:
+        truck = trucks[route_dict['truck_id']]
         
         # Calculate time for this route
-        route_time = calculate_path_time(graph, truck, path, service_time)
+        route_time = calculate_path_time(graph, truck, route_dict, service_time)
         max_time = max(max_time, route_time)
     
     return max_time
@@ -208,7 +241,13 @@ def feasability(graph, trucks, solution):
     
     return True, "Solution is feasible ✅"
 
-# generate feasible solution for the problem
+###############################################################################################
+###############################################################################################
+###############################################################################################
+##################################################################
+
+
+
 def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
     """
     Generate feasible initial solution using nearest neighbor.
@@ -219,7 +258,7 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
     - Return to depot
     
     Returns:
-        List of paths (one per truck)
+        List of route dicts (one per truck)
     """
     n_nodes = len(graph.nodes)
     customers = set(range(1, n_nodes))  # Exclude depot
@@ -273,34 +312,13 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
         # Return to depot
         route.append(0)
         
-        # Convert to solution format
-        path = []
-        curr_time = 0
-        load = current_load
+        # ========================================
+        # SIMPLIFIED: Just use create_route_dict()
+        # ========================================
+        route_dict = create_route_dict(truck.truck_id, route, graph, truck, service_time)
+        solution.append(route_dict)
+        # ========================================
         
-        for i, node in enumerate(route):
-            if i == 0:
-                # Depot start
-                path.append((0, 0, 0))
-            elif i == len(route) - 1:
-                # Depot end
-                travel = graph.graph[route[i-1]][0](curr_time) * truck.modifier
-                curr_time += travel
-                path.append((0, 0, curr_time))
-            else:
-                # Customer
-                if i > 0:
-                    travel = graph.graph[route[i-1]][node](curr_time) * truck.modifier
-                    curr_time += travel
-                
-                node_obj = graph.nodes[node]
-                demand = node_obj.demand if isinstance(node_obj.demand, int) else sum(node_obj.demand.values())
-                
-                curr_time += service_time
-                path.append((node, demand, curr_time))
-                load -= demand
-        
-        solution.append(path)
         truck_idx += 1
     
     if customers:
@@ -308,133 +326,192 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
     
     return solution
 
-#random possible mutation
-#add node to the cycle of 1 node
-def cycle_mutation(solution):
-    """for a compleat graph"""
-
-    new_solution = c.deepcopy(solution)
-
-    truck_id = r.randint(0, len(new_solution)-1)
-    route = new_solution[truck_id]
-    nb_deliveries = len(route) - 2
-
-    if nb_deliveries == 0:
-        while nb_deliveries != 0:
-            truck_id = r.randint(0, len(new_solution)-1)
-            route = new_solution[truck_id]
-            nb_deliveries = len(route) - 2
-
-    elif nb_deliveries == 1:
-        action = r.choice(["move"])
-    else:
-        action = r.choice(["move", "swap"])
-
-    # --- MOVE ---
-    if action == "move":
-        truck2 = r.randint(0, len(new_solution)-1)
-        while truck2 == truck_id:
-            truck2 = r.randint(0, len(new_solution)-1)
-        route2 = new_solution[truck2]
-
-        node_idx = r.randint(1, len(route)-2)
-        node = route.pop(node_idx)
-
-        if len(route2) <= 2:
-            insert_idx = 1
-        else:
-            insert_idx = r.randint(1, len(route2)-1)
-
-        route2.insert(insert_idx, node)
 
 
-        new_solution[truck_id] = route
-        new_solution[truck2] = route2
+
+#########################################################################
+############## MUTATION #################################################
+
+
+
+
+
+def swap_within_route_mutation(solution, graph, trucks, service_time=0.5):
+    """Swap two customers within the same route."""
+    new_solution = copy.deepcopy(solution)
+    
+    # Find routes with at least 2 customers
+    valid_routes = []
+    for i, route_dict in enumerate(new_solution):
+        customers = [s['node'] for s in route_dict['route'] if s['node'] != 0]
+        if len(customers) >= 2:
+            valid_routes.append(i)
+    
+    if not valid_routes:
         return new_solution
-
-    # --- SWAP ---
-    elif action == "swap":
-        i, j = sorted(r.sample(range(1, len(route)-1), 2))
-        route[i], route[j] = route[j], route[i]
-        new_solution[truck_id] = route
-        return new_solution
-
-
-#change the number of delivery object of 1 node
-def delivery_mutation(graph, trucks, products, solution):
-    return
-
-#change the leaving time of 1 node
-def leaving_time_mutation(graph, trucks, products, solution):
-    """modify the leaving time of a radom node."""
-
-    new_solution = c.deepcopy(solution)
-
-    while True:
-        truck_id = r.randint(0, len(new_solution) - 1)
-        route = new_solution[truck_id]
-
-        if len(route) <= 2:
-            # We dont have a node to modify, we try with an other truck
-            continue
-
-        # --- selection ---
-        node_idx = r.randint(1, len(route) - 2)
-        node = route[node_idx]
-        prev_node = route[node_idx - 1]
-        next_node = route[node_idx + 1] if node_idx + 1 < len(route) else None
-
-        prev_id, _, prev_leave = prev_node
-        node_id, node_deliver, _ = node
-
-        # --- Lower bound ---
-        travel_prev = graph.graph[prev_id][node_id](prev_leave) * trucks[truck_id].modifier
-        service_cur = sum(products[p].delivery_time * qty for p, qty in node_deliver.items())
-       
-        lower_bound = prev_leave + travel_prev + service_cur
-
-        # --- Upper bound ---
-        if next_node is not None:
-            next_id, _, next_leave = next_node
-            service_next = sum(products[p].delivery_time * qty for p, qty in next_node.items())
-            upper_bound = next_leave - service_next
-        else:
-            upper_bound = lower_bound + 1440
-
-        #Créer une liste de temps possibles sauf l’actuel
-        possible_times = [t for t in range(int(lower_bound), int(upper_bound) + int(max(graph.graph[node_id][next_id])), 5)
-                          if upper_bound - t - graph.graph[node_id][next_id](t) > 0]
-
-        # --- validity of the interval ---
-        if possible_times != []:
-            continue
-
-        # --- Mutation effective ---
-        new_leave_time = r.choice(possible_times)
-        new_node = (node_id, node_deliver, new_leave_time)
-        route[node_idx] = new_node
-        new_solution[truck_id] = route
-        return new_solution
-
-#global mutation
-def random_possible_mutation(graph, trucks, products, current_solution):
-    """
-    Randomly choose one type of mutation (cycle, delivery, or leaving time)
-    and apply it to the current solution.
-    """
-    mutation_functions = [
-        cycle_mutation,
-        delivery_mutation,
-        leaving_time_mutation
-    ]
-
-    # Pick one mutation randomly
-    chosen_mutation = r.choice(mutation_functions)
-
-    # Apply it and return the new solution
-    new_solution = chosen_mutation(graph, trucks, products, current_solution)
-
+    
+    # Select random route
+    route_idx = r.choice(valid_routes)
+    route_dict = new_solution[route_idx]
+    route = route_dict['route']
+    
+    # Get customer positions (not depot)
+    customer_positions = [i for i, s in enumerate(route) if s['node'] != 0]
+    
+    # Swap two random customers
+    i, j = r.sample(customer_positions, 2)
+    
+    # Extract node sequence
+    node_sequence = [s['node'] for s in route]
+    node_sequence[i], node_sequence[j] = node_sequence[j], node_sequence[i]
+    
+    # Recalculate route using create_route_dict
+    truck = trucks[route_dict['truck_id']]
+    new_route_dict = create_route_dict(truck.truck_id, node_sequence, graph, truck, service_time)
+    new_solution[route_idx] = new_route_dict
+    
     return new_solution
+
+
+def move_customer_mutation(solution, graph, trucks, service_time=0.5):
+    """Move a customer from one route to another."""
+    if len(solution) < 2:
+        return None  # Need at least 2 trucks
+    
+    new_solution = copy.deepcopy(solution)
+    
+    # Find source route with at least 1 customer
+    source_candidates = []
+    for i, route_dict in enumerate(new_solution):
+        customers = [s['node'] for s in route_dict['route'] if s['node'] != 0]
+        if len(customers) > 0:
+            source_candidates.append(i)
+    
+    if not source_candidates:
+        return None
+    
+    source_idx = r.choice(source_candidates)
+    source_route = new_solution[source_idx]['route']
+    
+    # Select random customer
+    customer_positions = [i for i, s in enumerate(source_route) if s['node'] != 0]
+    cust_pos = r.choice(customer_positions)
+    customer_node = source_route[cust_pos]['node']
+    customer_demand = graph.nodes[customer_node].demand
+    
+    # Handle dict demand
+    if isinstance(customer_demand, dict):
+        customer_demand = sum(customer_demand.values())
+    
+    # Select destination route
+    dest_idx = r.choice([i for i in range(len(solution)) if i != source_idx])
+    dest_route = new_solution[dest_idx]['route']
+    dest_truck = trucks[dest_idx]
+    
+    # Check capacity
+    current_load = new_solution[dest_idx]['total_load']
+    if current_load + customer_demand > dest_truck.max_capacity:
+        return None  # Exceeds capacity
+    
+    # Remove from source
+    source_sequence = [s['node'] for s in source_route]
+    source_sequence.remove(customer_node)
+    
+    # Add to destination
+    dest_sequence = [s['node'] for s in dest_route]
+    insert_pos = r.randint(1, len(dest_sequence) - 1)
+    dest_sequence.insert(insert_pos, customer_node)
+    
+    # Recalculate both routes using create_route_dict
+    source_truck = trucks[source_idx]
+    new_solution[source_idx] = create_route_dict(
+        source_truck.truck_id, source_sequence, graph, source_truck, service_time
+    )
+    new_solution[dest_idx] = create_route_dict(
+        dest_truck.truck_id, dest_sequence, graph, dest_truck, service_time
+    )
+    
+    return new_solution
+
+
+def reverse_segment_mutation(solution, graph, trucks, service_time=0.5):
+    """Reverse a segment of a route (2-opt style)."""
+    new_solution = copy.deepcopy(solution)
+    
+    # Find routes with at least 2 customers
+    valid_routes = []
+    for i, route_dict in enumerate(new_solution):
+        customers = [s['node'] for s in route_dict['route'] if s['node'] != 0]
+        if len(customers) >= 2:
+            valid_routes.append(i)
+    
+    if not valid_routes:
+        return new_solution
+    
+    route_idx = r.choice(valid_routes)
+    route = new_solution[route_idx]['route']
+    
+    # Get customer positions
+    customer_positions = [i for i, s in enumerate(route) if s['node'] != 0]
+    
+    if len(customer_positions) < 2:
+        return new_solution
+    
+    # Select two positions and reverse between them
+    i, j = sorted(r.sample(customer_positions, 2))
+    
+    # Extract sequence and reverse segment
+    node_sequence = [s['node'] for s in route]
+    node_sequence[i:j+1] = reversed(node_sequence[i:j+1])
+    
+    # Recalculate route using create_route_dict
+    truck = trucks[route_idx]
+    new_solution[route_idx] = create_route_dict(
+        truck.truck_id, node_sequence, graph, truck, service_time
+    )
+    
+    return new_solution
+
+
+
+
+
+
+####################################################################################################
+####################################################################################################
+####################################################################################################
+
+
+
+
+#########################################################################################################
+#########################################################################################################
+#######################  Hill climbing and Tabu search###################################################
+
+def apply_random_mutation(solution, graph, trucks, service_time=0.5):
+    """Apply a random mutation that preserves feasibility."""
+    mutations = [
+        swap_within_route_mutation,
+        move_customer_mutation,
+        reverse_segment_mutation
+    ]
+    
+    # Try mutations in random order
+    r.shuffle(mutations)
+    
+    for mutation_func in mutations:
+        new_solution = mutation_func(solution, graph, trucks, service_time)
+        
+        if new_solution is not None:
+            # Check feasibility
+            is_feasible, _ = feasability(graph, trucks, new_solution)
+            if is_feasible:
+                return new_solution
+    
+    # If all fail, return original
+    return solution
+
+
 
 #hillclimbing 
 def hill_climbing(graph, trucks, products, max_iterations=1000):
@@ -476,4 +553,8 @@ def hill_climbing(graph, trucks, products, max_iterations=1000):
     return best_solution, best_score
   
 
-#tabou
+
+#########################################################################################################
+#########################################################################################################
+#########################################################################################################
+
