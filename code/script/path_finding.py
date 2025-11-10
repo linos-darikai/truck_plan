@@ -3,13 +3,99 @@ import random as r
 import copy as c
 
 #time printer
-def print_hour(hour):
+def get_path_travel_time(graph, truck, path, units='hours'):
     """
-    Convert a fractional hour into hours and minutes and print it.
-    """
-    print(f"{int((hour // 60) // 24)}d {int((hour // 60) % 24)}h {int(hour % 60)}min")
-    return
+    Calculate the total *travel time* for a single truck's path, 
+    excluding delivery times.
 
+    Args:
+        graph (list): The graph matrix with edge functions.
+        truck (Truck): The truck object assigned to this path.
+        path (list): A list of tuples:
+            (node_index, products_delivered_dict, leaving_time)
+        units (str): The desired output format ('hours' or 'minutes').
+    
+    Returns:
+        float or int: The total travel time in the specified units.
+                     (float for 'hours', int for 'minutes')
+    """
+    total_travel_time_hours = 0
+    # No travel time if path is empty or just has the starting node
+    if not path or len(path) < 2:
+        return 0 
+
+    current_node = path[0][0]
+
+    # Iterate from the first stop onwards
+    for stop in path[1:]:
+        next_node, _, leaving_time = stop # Delivery info is ignored
+        
+        # Check if edge exists
+        edge_function = graph[current_node][next_node]
+        if edge_function is None:
+            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
+            continue # Skip this segment
+
+        # 1. Calculate Travel time
+        travel_value = edge_function(leaving_time)
+        
+        # 2. Apply truck modifier and add to total time
+        total_travel_time_hours += truck.modifier * travel_value
+        
+        # Update current node for next iteration
+        current_node = next_node
+
+    # Return based on desired units
+    if units == 'minutes':
+        return int(total_travel_time_hours * 60)
+    
+    # Default to hours
+    return total_travel_time_hours
+
+def calculate_path_time(graph, truck, products, path):
+    """
+    Calculate the total time (travel + delivery) for a single truck's path.
+
+    Args:
+        graph (list): The graph matrix with edge functions.
+        truck (Truck): The truck object assigned to this path.
+        products (dict): The dictionary of all products.
+        path (list): A list of tuples:
+            (node_index, products_delivered_dict, leaving_time)
+    
+    Returns:
+        float: The total time for the path in hours.
+    """
+    total_path_time = 0
+    # No travel time if path is empty or just has the starting node
+    if not path or len(path) < 2:
+        return 0 
+
+    current_node = path[0][0]
+
+    # Iterate from the first stop onwards
+    for stop in path[1:]:
+        next_node, delivered, leaving_time = stop
+        
+        # Check if edge exists
+        edge_function = graph[current_node][next_node]
+        if edge_function is None:
+            print(f"Warning: No edge from {current_node} to {next_node}. Skipping segment.")
+            continue # Skip this segment
+
+        # 1. Calculate Travel time
+        travel_value = edge_function(leaving_time)
+        
+        # 2. Calculate Delivery time
+        delivery_value = sum(qty * products[prod].delivery_time for prod, qty in delivered.items())
+        
+        # 3. Apply truck modifier and add to total time
+        total_path_time += truck.modifier * travel_value + delivery_value
+        
+        # Update current node for next iteration
+        current_node = next_node
+
+    return total_path_time
 
 #evaluation
 def evaluation(graph, trucks, products, solution):
@@ -23,27 +109,13 @@ def evaluation(graph, trucks, products, solution):
     time_each_path = []
 
     for i, path in enumerate(solution):
-        total_path_time = 0
-        if not path:
-            time_each_path.append(0)
-            continue
+        truck = trucks[i]
+        # Use the function to calculate total time (travel + delivery)
+        path_time = calculate_path_time(graph, truck, products, path)
+        time_each_path.append(path_time)
 
-        current_node = path[0][0]
-
-        for stop in path[1:]:
-            next_node, delivered, leaving_time = stop
-            # Travel time
-            edge_function = graph[current_node][next_node]
-            travel_value = edge_function(leaving_time)
-            # Delivery time
-            delivery_value = sum(qty * products[prod].delivery_time for prod, qty in delivered.items())
-            # Apply truck modifier
-            total_path_time += trucks[i].modifier * travel_value + delivery_value
-            current_node = next_node
-
-        time_each_path.append(total_path_time)
-
-    return max(time_each_path)
+    # Return 0 if there are no paths, otherwise return the max time
+    return max(time_each_path) if time_each_path else 0
 
 def feasability(graph, trucks, products, solution):#need to check
     """
@@ -106,14 +178,12 @@ def feasability(graph, trucks, products, solution):#need to check
             return False, f"Truck {truck.truck_type}: Weight exceeded ({used_weight}/{truck.max_weight})"
 
     # 4️⃣ check that all deliveries are completed
-    for node, node_demands in demands.items():
-        for pname, needed_qty in node_demands.items():
+    for node in range(len(graph.nodes)):
+        for pname, needed_qty in node.demand:
             if deliveries_done[node][pname] < needed_qty:
                 return False, f"Node {node}: Missing delivery of {needed_qty - deliveries_done[node][pname]} {pname}"
 
     return True, "OK ✅"
-
-
 
 #random possible solution
 def random_possible_solution(graph, trucks, products):
@@ -140,7 +210,6 @@ def random_possible_solution(graph, trucks, products):
 
 #random possible mutation
 #add node to the cycle of 1 node
-
 def cycle_mutation(solution):
     """for a compleat graph"""
 
@@ -191,7 +260,6 @@ def cycle_mutation(solution):
         return new_solution
 
     return new_solution
-
 #change the number of delivery object of 1 node
 def delivery_mutation(graph, trucks, products, solution):
     return
@@ -201,6 +269,7 @@ def leaving_time_mutation(graph, trucks, products, solution):
 
 #global mutation
 def random_possible_mutation(graph, trucks, products, curent_solution):
+    
     return
 
 #hillpath   
