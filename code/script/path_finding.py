@@ -1,6 +1,7 @@
 from structure import *
 import random as r
 import copy 
+import time
 
 """
 Solution new structure 
@@ -491,7 +492,6 @@ def reverse_segment_mutation(solution, graph, trucks, service_time=0.5):
 
 
 
-
 #########################################################################################################
 #########################################################################################################
 #######################  Hill climbing and Tabu search###################################################
@@ -561,6 +561,480 @@ def hill_climbing(graph, trucks, max_iterations=1000):
     return best_solution, best_score
   
 
+"""
+Multi-Start Tabu Search for VRP
+Combines multiple tabu search runs with different starting solutions
+"""
+
+
+
+# ============================================================================
+# TABU SEARCH COMPONENTS
+# ============================================================================
+
+def get_solution_hash(solution):
+    """
+    Create a hash representing the structure of a solution.
+    Used to identify if we've seen this solution before in tabu search.
+    
+    Returns:
+        tuple: Hashable representation of customer assignments to trucks
+    """
+    # For each truck, get the sorted list of customers it serves
+    move_signature = []
+    for route_dict in solution:
+        customers = tuple(sorted([stop['node'] for stop in route_dict['route'] if stop['node'] != 0]))
+        move_signature.append(customers)
+    return tuple(sorted(move_signature))
+
+
+def get_all_neighbors(solution, graph, trucks, service_time=0.5, max_neighbors=200):
+    """
+    Hybrid approach: Exhaustive for cheap operations, sampled for expensive ones.
+    """
+    neighbors = []
+    
+    # 1. EXHAUSTIVE: All swaps within routes (cheap, not many)
+    for route_idx, route_dict in enumerate(solution):
+        route = route_dict['route']
+        customer_positions = [i for i, s in enumerate(route) if s['node'] != 0]
+        
+        if len(customer_positions) >= 2:
+            for i in range(len(customer_positions)):
+                for j in range(i + 1, len(customer_positions)):
+                    # Use swap mutation logic
+                    temp_solution = copy.deepcopy(solution)
+                    temp_route = temp_solution[route_idx]['route']
+                    node_sequence = [s['node'] for s in temp_route]
+                    pos_i, pos_j = customer_positions[i], customer_positions[j]
+                    node_sequence[pos_i], node_sequence[pos_j] = node_sequence[pos_j], node_sequence[pos_i]
+                    
+                    truck = trucks[route_idx]
+                    temp_solution[route_idx] = create_route_dict(
+                        truck.truck_id, node_sequence, graph, truck, service_time
+                    )
+                    
+                    is_feas, _ = feasability(graph, trucks, temp_solution)
+                    if is_feas:
+                        neighbors.append((temp_solution, "swap", f"swap_r{route_idx}"))
+                        if max_neighbors and len(neighbors) >= max_neighbors:
+                            return neighbors
+    
+    # 2. SAMPLED: Move operations (expensive, many possibilities)
+    num_move_samples = min(50, max_neighbors - len(neighbors)) if max_neighbors else 50
+    for _ in range(num_move_samples):
+        neighbor = move_customer_mutation(solution, graph, trucks, service_time)
+        if neighbor is not None:
+            is_feas, _ = feasability(graph, trucks, neighbor)
+            if is_feas:
+                neighbors.append((neighbor, "move", "move_sampled"))
+                if max_neighbors and len(neighbors) >= max_neighbors:
+                    return neighbors
+    
+    # 3. EXHAUSTIVE: All reversals (cheap, not many)
+    for route_idx, route_dict in enumerate(solution):
+        route = route_dict['route']
+        customer_positions = [i for i, s in enumerate(route) if s['node'] != 0]
+        
+        if len(customer_positions) >= 2:
+            for i in range(len(customer_positions)):
+                for j in range(i + 1, min(i + 5, len(customer_positions))):  # Limit segment size
+                    temp_solution = copy.deepcopy(solution)
+                    node_sequence = [s['node'] for s in temp_solution[route_idx]['route']]
+                    pos_i, pos_j = customer_positions[i], customer_positions[j]
+                    node_sequence[pos_i:pos_j+1] = reversed(node_sequence[pos_i:pos_j+1])
+                    
+                    truck = trucks[route_idx]
+                    temp_solution[route_idx] = create_route_dict(
+                        truck.truck_id, node_sequence, graph, truck, service_time
+                    )
+                    
+                    is_feas, _ = feasability(graph, trucks, temp_solution)
+                    if is_feas:
+                        neighbors.append((temp_solution, "reverse", f"reverse_r{route_idx}"))
+                        if max_neighbors and len(neighbors) >= max_neighbors:
+                            return neighbors
+    
+    return neighbors
+
+# ============================================================================
+# SINGLE TABU SEARCH RUN
+# ============================================================================
+
+def tabu_search(graph, trucks, initial_solution=None, max_iterations=500, 
+                tabu_tenure=20, service_time=0.5, verbose=False):
+    """
+    Single run of tabu search algorithm.
+    
+    Args:
+        graph: Graph object
+        trucks: List of Truck objects
+        initial_solution: Starting solution (None = generate new)
+        max_iterations: Number of iterations
+        tabu_tenure: How long a move stays tabu
+        service_time: Service time at each customer
+        verbose: Print progress
+    
+    Returns:
+        (best_solution, best_score, iterations_used)
+    """
+    # Generate or use provided initial solution
+    if initial_solution is None:
+        current_solution = generate_feasible_initial_solution(graph, trucks, service_time)
+    else:
+        current_solution = copy.deepcopy(initial_solution)
+    
+    # Verify feasibility
+    is_feasible, msg = feasability(graph, trucks, current_solution)
+    if not is_feasible:
+        raise RuntimeError(f"Initial solution infeasible: {msg}")
+    
+    # Initialize best
+    best_solution = copy.deepcopy(current_solution)
+    best_score = evaluation(graph, trucks, best_solution, service_time)
+    current_score = best_score
+    
+    # Tabu list: stores (move_hash, iteration_when_made_tabu)
+    tabu_list = {}
+    
+    # Statistics
+    improvements = 0
+    iterations_since_improvement = 0
+    tabu_overrides = 0
+    
+    # Tabu search loop
+    for iteration in range(max_iterations):
+        # Clean up old tabu entries
+        tabu_list = {k: v for k, v in tabu_list.items() if iteration - v < tabu_tenure}
+        
+        # Generate neighbors (limit for speed)
+        neighbors = get_all_neighbors(current_solution, graph, trucks, service_time, max_neighbors=100)
+        
+        if not neighbors:
+            if verbose:
+                print(f"  [TS] Iteration {iteration+1}: No neighbors found, stopping")
+            break
+        
+        # Find best non-tabu neighbor
+        best_neighbor = None
+        best_neighbor_score = float('inf')
+        
+        for neighbor_solution, move_type, move_details in neighbors:
+            neighbor_score = evaluation(graph, trucks, neighbor_solution, service_time)
+            neighbor_hash = get_solution_hash(neighbor_solution)
+            
+            is_tabu = neighbor_hash in tabu_list
+            
+            # Aspiration criterion: accept tabu move if better than best ever
+            if is_tabu and neighbor_score < best_score:
+                is_tabu = False
+                tabu_overrides += 1
+            
+            # Track best non-tabu neighbor
+            if not is_tabu and neighbor_score < best_neighbor_score:
+                best_neighbor = neighbor_solution
+                best_neighbor_score = neighbor_score
+        
+        if best_neighbor is None:
+            if verbose:
+                print(f"  [TS] Iteration {iteration+1}: All neighbors tabu, stopping")
+            break
+        
+        # Move to best neighbor
+        current_solution = best_neighbor
+        current_score = best_neighbor_score
+        
+        # Add to tabu list
+        move_hash = get_solution_hash(current_solution)
+        tabu_list[move_hash] = iteration
+        
+        # Update best if improved
+        if current_score < best_score:
+            best_solution = copy.deepcopy(current_solution)
+            best_score = current_score
+            improvements += 1
+            iterations_since_improvement = 0
+            
+            if verbose:
+                print(f"  [TS] Iteration {iteration+1}: New best = {best_score:.2f}")
+        else:
+            iterations_since_improvement += 1
+        
+        # Early stopping if no improvement
+        if iterations_since_improvement > max_iterations // 4:
+            if verbose:
+                print(f"  [TS] Stopping early: no improvement for {iterations_since_improvement} iterations")
+            break
+    
+    return best_solution, best_score, iteration + 1
+
+
+# ============================================================================
+# MULTI-START TABU SEARCH
+# ============================================================================
+
+def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=200,
+                            tabu_tenure=20, service_time=0.5, verbose=True,
+                            time_limit=None):
+    """
+    Multi-start tabu search: Run tabu search multiple times with different
+    initial solutions and return the best result.
+    
+    Args:
+        graph: Graph object
+        trucks: List of Truck objects
+        num_starts: Number of different starting points
+        iterations_per_start: Iterations for each tabu search run
+        tabu_tenure: Tabu list tenure
+        service_time: Service time at each customer
+        verbose: Print progress
+        time_limit: Maximum time in seconds (None = no limit)
+    
+    Returns:
+        (best_solution, best_score, statistics_dict)
+    """
+    if verbose:
+        print("\n" + "=" * 70)
+        print("MULTI-START TABU SEARCH")
+        print("=" * 70)
+        print(f"Configuration:")
+        print(f"  Number of starts: {num_starts}")
+        print(f"  Iterations per start: {iterations_per_start}")
+        print(f"  Tabu tenure: {tabu_tenure}")
+        print(f"  Time limit: {time_limit if time_limit else 'None'}")
+    
+    start_time = time.time()
+    
+    # Track overall best
+    global_best_solution = None
+    global_best_score = float('inf')
+    
+    # Statistics
+    all_scores = []
+    all_iterations = []
+    improvements_per_start = []
+    
+    # Run multiple tabu searches
+    for start_idx in range(num_starts):
+        # Check time limit
+        if time_limit and (time.time() - start_time) > time_limit:
+            if verbose:
+                print(f"\n⏱️  Time limit reached after {start_idx} starts")
+            break
+        
+        if verbose:
+            print(f"\n--- Start {start_idx + 1}/{num_starts} ---")
+        
+        # Generate different initial solution for each start
+        # Add randomness by shuffling customer selection order
+        if start_idx == 0:
+            # First start: use standard nearest neighbor
+            initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
+        else:
+            # Subsequent starts: add randomness
+            # Simple approach: generate with randomized nearest neighbor
+            initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
+            
+            # Apply a few random mutations to diversify
+            for _ in range(r.randint(5, 15)):
+                initial_solution = apply_random_mutation(initial_solution, graph, trucks, service_time)
+        
+        initial_score = evaluation(graph, trucks, initial_solution, service_time)
+        
+        if verbose:
+            print(f"  Initial score: {initial_score:.2f}")
+        
+        # Run tabu search from this starting point
+        solution, score, iterations_used = tabu_search(
+            graph, trucks,
+            initial_solution=initial_solution,
+            max_iterations=iterations_per_start,
+            tabu_tenure=tabu_tenure,
+            service_time=service_time,
+            verbose=verbose
+        )
+        
+        # Track statistics
+        all_scores.append(score)
+        all_iterations.append(iterations_used)
+        improvement = initial_score - score
+        improvements_per_start.append(improvement)
+        
+        if verbose:
+            print(f"  Final score: {score:.2f} (improvement: {improvement:.2f})")
+        
+        # Update global best
+        if score < global_best_score:
+            global_best_solution = copy.deepcopy(solution)
+            global_best_score = score
+            
+            if verbose:
+                print(f"  ⭐ NEW GLOBAL BEST: {global_best_score:.2f}")
+    
+    elapsed_time = time.time() - start_time
+    
+    # Compile statistics
+    statistics = {
+        'total_starts': len(all_scores),
+        'best_score': global_best_score,
+        'worst_score': max(all_scores) if all_scores else 0,
+        'average_score': sum(all_scores) / len(all_scores) if all_scores else 0,
+        'std_score': (sum((s - sum(all_scores)/len(all_scores))**2 for s in all_scores) / len(all_scores))**0.5 if all_scores else 0,
+        'total_iterations': sum(all_iterations),
+        'average_iterations': sum(all_iterations) / len(all_iterations) if all_iterations else 0,
+        'total_time': elapsed_time,
+        'improvements': improvements_per_start
+    }
+    
+    # Final report
+    if verbose:
+        print("\n" + "=" * 70)
+        print("MULTI-START TABU SEARCH RESULTS")
+        print("=" * 70)
+        print(f"Global best score: {global_best_score:.2f}")
+        print(f"Total starts completed: {statistics['total_starts']}")
+        print(f"Score range: {statistics['worst_score']:.2f} - {global_best_score:.2f}")
+        print(f"Average score: {statistics['average_score']:.2f} (±{statistics['std_score']:.2f})")
+        print(f"Total iterations: {statistics['total_iterations']}")
+        print(f"Total time: {elapsed_time:.2f} seconds")
+        print(f"Average time per start: {elapsed_time/len(all_scores):.2f} seconds")
+        
+        # Show improvement distribution
+        print(f"\nImprovements per start:")
+        for i, imp in enumerate(improvements_per_start):
+            print(f"  Start {i+1}: {imp:.2f} improvement")
+    
+    return global_best_solution, global_best_score, statistics
+
+
+# ============================================================================
+# ADAPTIVE MULTI-START (Advanced version)
+# ============================================================================
+
+def adaptive_multi_start_tabu_search(graph, trucks, time_budget=300,
+                                     min_starts=3, max_starts=20,
+                                     service_time=0.5, verbose=True):
+    """
+    Adaptive multi-start: Dynamically adjust number of starts and iterations
+    based on time budget and improvement rate.
+    
+    Args:
+        graph: Graph object
+        trucks: List of Truck objects
+        time_budget: Total time budget in seconds
+        min_starts: Minimum number of starts
+        max_starts: Maximum number of starts
+        service_time: Service time at each customer
+        verbose: Print progress
+    
+    Returns:
+        (best_solution, best_score, statistics_dict)
+    """
+    if verbose:
+        print("\n" + "=" * 70)
+        print("ADAPTIVE MULTI-START TABU SEARCH")
+        print("=" * 70)
+        print(f"Time budget: {time_budget} seconds")
+    
+    start_time = time.time()
+    
+    # Adaptive parameters
+    base_iterations = 100
+    iterations_per_start = base_iterations
+    tabu_tenure = 20
+    
+    global_best_solution = None
+    global_best_score = float('inf')
+    
+    all_scores = []
+    improvements_per_start = []
+    
+    start_idx = 0
+    no_improvement_count = 0
+    
+    while start_idx < max_starts:
+        elapsed = time.time() - start_time
+        
+        # Check if we've used up time budget
+        if elapsed >= time_budget:
+            if verbose:
+                print(f"\n⏱️  Time budget exhausted")
+            break
+        
+        # Stop if minimum starts done and no recent improvements
+        if start_idx >= min_starts and no_improvement_count >= 3:
+            if verbose:
+                print(f"\n🛑 Stopping: no improvement in last 3 starts")
+            break
+        
+        # Adjust iterations based on remaining time
+        time_remaining = time_budget - elapsed
+        estimated_time_per_iter = 0.5  # Rough estimate
+        iterations_per_start = max(50, int(time_remaining / estimated_time_per_iter / (max_starts - start_idx)))
+        
+        if verbose:
+            print(f"\n--- Start {start_idx + 1} ---")
+            print(f"  Time remaining: {time_remaining:.1f}s")
+            print(f"  Iterations: {iterations_per_start}")
+        
+        # Generate initial solution
+        if start_idx == 0:
+            initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
+        else:
+            initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
+            for _ in range(r.randint(3, 10)):
+                initial_solution = apply_random_mutation(initial_solution, graph, trucks, service_time)
+        
+        initial_score = evaluation(graph, trucks, initial_solution, service_time)
+        
+        # Run tabu search
+        solution, score, _ = tabu_search(
+            graph, trucks,
+            initial_solution=initial_solution,
+            max_iterations=iterations_per_start,
+            tabu_tenure=tabu_tenure,
+            service_time=service_time,
+            verbose=False
+        )
+        
+        all_scores.append(score)
+        improvement = initial_score - score
+        improvements_per_start.append(improvement)
+        
+        if verbose:
+            print(f"  Result: {score:.2f} (improvement: {improvement:.2f})")
+        
+        # Update global best
+        if score < global_best_score:
+            global_best_solution = copy.deepcopy(solution)
+            global_best_score = score
+            no_improvement_count = 0
+            
+            if verbose:
+                print(f"  ⭐ NEW BEST: {global_best_score:.2f}")
+        else:
+            no_improvement_count += 1
+        
+        start_idx += 1
+    
+    elapsed_time = time.time() - start_time
+    
+    statistics = {
+        'total_starts': start_idx,
+        'best_score': global_best_score,
+        'total_time': elapsed_time,
+        'improvements': improvements_per_start
+    }
+    
+    if verbose:
+        print("\n" + "=" * 70)
+        print("ADAPTIVE RESULTS")
+        print("=" * 70)
+        print(f"Best score: {global_best_score:.2f}")
+        print(f"Starts completed: {start_idx}")
+        print(f"Total time: {elapsed_time:.2f}s")
+    
+    return global_best_solution, global_best_score, statistics
 
 #########################################################################################################
 #########################################################################################################
@@ -569,7 +1043,7 @@ def hill_climbing(graph, trucks, max_iterations=1000):
 if __name__ == "__main__":
     # Load instance
     g = Graph()
-    g.load_from_vrplib('../media/instances/X-n101-k25.vrp')
+    g.load_from_vrplib('../media/instances/A-n32-k5.vrp')
     
     # Create trucks (simplified)
     trucks = [
@@ -595,3 +1069,5 @@ if __name__ == "__main__":
     # Run hill climbing
     best_sol, best_score = hill_climbing(g, trucks, max_iterations=1000)
     print(f"Best score: {best_score}")
+    adaptive_multi_start_tabu_search(g, trucks)
+    multi_start_tabu_search(g, trucks)
