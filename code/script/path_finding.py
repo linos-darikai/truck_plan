@@ -1341,7 +1341,6 @@ if __name__ == "__main__":
          print(f"  Standard Deviation: {stats['std_score']:.2f}")
 
 
-    # ----------------------------------------------------------------
     # 3. Adaptive Multi-Start Tabu Search (AMSTS) Run
     print("\n--- 3. Running Adaptive Multi-Start Tabu Search ---")
     print(f"    (This will run for 180 seconds to match the benchmark...)")
