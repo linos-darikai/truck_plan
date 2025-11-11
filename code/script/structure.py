@@ -98,18 +98,6 @@ class Graph:
                 val += a * np.cos(w * t + phi)
             return val
         return f
-
-    def distance_function (self, coord1, coord2):
-        """
-        create a positiove constant function as value the distance between coord1 and coord2
-        """
-        x = (coord1[0]-coord2[0])**2
-        y = (coord1[1]-coord2[1])**2
-        def  f(t):
-            return m.sqrt(x+y)
-        return f
-
-
     def load_from_vrplib(self, file_path):
         """
         Load VRP instance from vrplib file.
@@ -126,8 +114,9 @@ class Graph:
         instance = vrplib.read_instance(file_path)
         self.instance = instance
         
-        # Get dimensions
+        # Get dimensions and coordinates
         n = len(instance['node_coord'])
+        coords = instance['node_coord']  # Get coordinates
         print(f"Nodes: {n}")
         
         # Create nodes with demands
@@ -138,19 +127,27 @@ class Graph:
             for i in range(n):
                 demand = int(demands[i]) if i < len(demands) else 0
                 node = Node(node_id=i, demand=demand)
+                node.x = coords[i][0]
+                node.y = coords[i][1]
                 self.nodes.append(node)
         else:
             # No demand info - create default
-            self.nodes.append(Node(node_id=0, demand=0))  # Depot
+            node_0 = Node(node_id=0, demand=0)
+            node_0.x = coords[0][0]
+            node_0.y = coords[0][1]
+            self.nodes.append(node_0)
+            
             for i in range(1, n):
-                self.nodes.append(Node(node_id=i, demand=r.randint(5, 20)))
+                node_i = Node(node_id=i, demand=r.randint(5, 20))
+                node_i.x = coords[i][0]
+                node_i.y = coords[i][1]
+                self.nodes.append(node_i)
         
         # Calculate total demand
         total_demand = sum(node.demand for node in self.nodes[1:])
         print(f"Total demand: {total_demand}")
         
         # Create edge functions based on Euclidean distances
-        coords = instance['node_coord']
         self.graph = [[None] * n for _ in range(n)]
         
         for i in range(n):
@@ -161,17 +158,16 @@ class Graph:
                     dy = coords[i][1] - coords[j][1]
                     distance = m.sqrt(dx**2 + dy**2)
                     
-                    # Create time function
-                    # Option 1: Use your existing create_time_function
-                    self.graph[i][j] = self.create_time_function(self.time_line)
-                    
-                    # Option 2: Use distance-based function (simpler)
-                    # self.graph[i][j] = lambda t, d=distance: d * (1 + 0.1 * np.sin(2*np.pi*t/1440))
+                    # --- THIS IS THE FIX ---
+                    # The benchmark cost IS the Euclidean distance.
+                    # We store a simple lambda function that returns this distance,
+                    # ignoring the time 't' for this standard CVRP problem.
+                    self.graph[i][j] = lambda t, d=distance: d
+                    # --- END FIX ---
         
         # Extract instance info
         vehicle_capacity = instance.get('capacity', 100)
         
-        # Extract number of vehicles from name (e.g., "A-n32-k5" -> 5)
         num_vehicles = None
         if 'name' in instance:
             name = instance['name']
@@ -187,6 +183,8 @@ class Graph:
             'vehicle_capacity': vehicle_capacity,
             'num_vehicles': num_vehicles
         }
+
+
     #print
     def print_demand(self):
         """

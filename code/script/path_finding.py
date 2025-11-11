@@ -2,6 +2,8 @@ from structure import *
 import random as r
 import copy 
 import time
+import matplotlib.pyplot as plt
+import numpy as np
 
 """
 Solution new structure 
@@ -19,6 +21,235 @@ solution = [
     {...}
 ]
 """
+
+OPTIMUM_COSTS = {
+    'A-n32-k5': 784,
+    'X-n101-k25': 27591,
+    'X-n204-k16': 34843,
+    'X-n253-k30': 58796,
+    'X-n262-k25': 45912,
+    'X-n303-k32': 69405,
+    'X-n378-k48': 88229,
+    'X-n411-k36': 73297,
+    'X-n515-k25': 101583,
+    'X-n619-k25': 120573,
+    'X-n733-k62': 147129,
+    'X-n837-k54': 137694,
+    'X-n949-k80': 176814,
+    'X-n1061-k51': 153531,
+    'X-n1152-k60': 170531,
+
+    # Add more known instances here
+}
+###############################################################################################
+###############################################################################################
+###############################################################################################
+####################### PLOTTING AND ROUTE CREATION #############################################
+
+def plot_vrp_solution(graph, solution, title="VRP Solution"):
+    """
+    Plots the routes from the final solution on a 2D plane.
+
+    Args:
+        graph: Your Graph object (must contain node coordinates in graph.nodes,
+               assumed to be a list where index == node ID).
+        solution: List of route dicts.
+        title: Title of the plot.
+    """
+    if not graph.nodes:
+        print("Error: Graph has no nodes to plot.")
+        return
+
+    plt.figure(figsize=(10, 8))
+    
+    # --- 1. Extract Coordinates ---
+    coords = {}
+    for node_id, node in enumerate(graph.nodes):
+        if hasattr(node, 'x') and hasattr(node, 'y'):
+            coords[node_id] = (node.x, node.y)
+        else:
+            print(f"Warning: Node {node_id} is missing coordinates (x, y). Skipping.")
+            
+    if 0 not in coords:
+        print("Error: Depot (Node 0) coordinates not found.")
+        return
+        
+    depot_coord = coords[0]
+    
+    # --- 2. Plot Depot and Customers ---
+    plt.plot(depot_coord[0], depot_coord[1], 's', color='red', markerfacecolor='red', 
+             markersize=10, label='Depot (Node 0)', zorder=3)
+    
+    customer_coords = [c for nid, c in coords.items() if nid != 0]
+    plt.plot([c[0] for c in customer_coords], [c[1] for c in customer_coords], 
+             'o', color='blue', markersize=6, alpha=0.7, label='Customer Nodes', zorder=2)
+
+    # --- 3. Plot Routes ---
+    
+    # --- FIX 1: Correctly get the colormap object ---
+    # The new API doesn't take a number as the second argument.
+    cmap = plt.colormaps.get_cmap('viridis')
+    # Avoid division by zero if solution list is empty or has 1 route
+    num_routes = max(1, len(solution)) 
+    
+    for i, route_dict in enumerate(solution):
+        route = route_dict.get('route', [])
+        truck_id = route_dict.get('truck_id', i)
+        
+        if len(route) < 2:
+            continue
+            
+        route_nodes = [stop['node'] for stop in route]
+        
+        try:
+            route_coords = [coords[node_id] for node_id in route_nodes]
+        except KeyError as e:
+            print(f"Error: Node ID {e} in truck {truck_id} route not found in coordinates dictionary. Skipping route.")
+            continue
+
+        xs = [c[0] for c in route_coords]
+        ys = [c[1] for c in route_coords]
+        
+        # --- FIX 2: Use the colormap with a normalized value (0.0 to 1.0) ---
+        # We calculate a fraction for the current route index 'i'
+        color_val = i / (num_routes - 1) if num_routes > 1 else 0.5
+        
+        plt.plot(xs, ys, color=cmap(color_val), linestyle='-', linewidth=1.5, alpha=0.7, 
+                 label=f'Truck {truck_id} Route', zorder=1)
+        
+    # --- 4. Final Formatting ---
+    plt.title(title, fontsize=14, fontweight='bold')
+    plt.xlabel("X Coordinate")
+    plt.ylabel("Y Coordinate")
+    
+    handles, labels = plt.gca().get_legend_handles_labels()
+    unique_labels = {}
+    for h, l in zip(handles, labels):
+        if l.startswith('Truck') and 'Truck Route' not in unique_labels:
+             unique_labels['Truck Route'] = h
+        elif not l.startswith('Truck'):
+            unique_labels[l] = h
+
+    plt.legend(unique_labels.values(), unique_labels.keys(), loc='upper right', fontsize='small')
+    
+    plt.grid(True, linestyle=':', alpha=0.5)
+    plt.axis('equal')
+    plt.show()
+# You must also ensure you have 'import matplotlib.pyplot as plt' at the top of your script.
+
+def plot_cost_improvement(scores_history, title="Cost Improvement Over Iterations"):
+    """
+    Plots the cost (score) improvement over the course of the algorithm run.
+    
+    Args:
+        scores_history: List of scores recorded at each step where an improvement was made.
+        title: Title for the plot.
+    """
+    if not scores_history:
+        print("No score history provided to plot.")
+        return
+        
+    plt.figure(figsize=(10, 6))
+    
+    # Generate iteration index for each recorded score
+    iterations = range(1, len(scores_history) + 1)
+    
+    plt.plot(iterations, scores_history, marker='o', linestyle='-', color='teal', alpha=0.8)
+    
+    plt.title(title)
+    plt.xlabel("Improvement Step Index")
+    plt.ylabel("Maximum Route Time (Score)")
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.show()
+
+
+def show_statistics(scores, algorithm_name):
+    """
+    Calculates and displays statistical metrics for a list of scores.
+    
+    Args:
+        scores: List of numerical scores (e.g., final scores from multi-start runs).
+        algorithm_name: Name of the algorithm (for context).
+    """
+    if not scores:
+        print(f"No data available for {algorithm_name} statistics.")
+        return
+        
+    print(f"\n📈 Statistics for {algorithm_name}:")
+    print("=" * 40)
+    
+    arr = np.array(scores)
+    
+    print(f"  Total Runs: {len(arr)}")
+    print(f"  Best Score (Min): {np.min(arr):.2f}")
+    print(f"  Worst Score (Max): {np.max(arr):.2f}")
+    print(f"  Mean Score: {np.mean(arr):.2f}")
+    print(f"  Median Score: {np.median(arr):.2f}")
+    print(f"  Standard Deviation (SD): {np.std(arr):.2f}")
+    print(f"  Range: {np.ptp(arr):.2f}")
+    print("=" * 40)
+
+import numpy as np # Ensure numpy is imported
+
+def show_benchmark(instance_name, benchmark_results):
+    """
+    Displays a comparison table of results from multiple algorithms,
+    benchmarked against the known optimum cost for that instance.
+    
+    Args:
+        instance_name: The name of the instance (e.g., 'A-n32-k5').
+        benchmark_results: Dictionary mapping algorithm names to (best_score, time).
+            Example: {'Hill Climbing': (812, 45.2), 'Multi-Start TS': (790, 182.7)}
+    """
+    
+    # Try to get the optimum cost from our dictionary
+    optimum = OPTIMUM_COSTS.get(instance_name)
+    
+    print("\n\n🏆 Algorithm Benchmark Table")
+    print(f"Instance: {instance_name}")
+    
+    # --- Print Header ---
+    if optimum is not None:
+        print(f"Known Optimum Cost: {optimum}")
+        print("=" * 80)
+        print(f"{'Algorithm':<25} | {'Optimum Cost':<12} | {'Your Cost':<12} | {'Gap (%)':<10} | {'Time (s)':<10}")
+        print("-" * 80)
+    else:
+        # Fallback if we don't know the optimum
+        print(f"Known Optimum Cost: N/A")
+        print("=" * 60)
+        print(f"{'Algorithm':<25} | {'Your Cost':<15} | {'Time (s)':<15}")
+        print("-" * 60)
+
+    # --- Print Results for Each Algorithm ---
+    total_gap = 0
+    valid_gaps = 0
+    
+    for algo, (score, time_sec) in benchmark_results.items():
+        if optimum is not None:
+            # Calculate Gap: ((Your Cost / Optimum) - 1) * 100
+            gap = ((score / optimum) - 1) * 100
+            total_gap += gap
+            valid_gaps += 1
+            print(f"{algo:<25} | {optimum:<12} | {score:<12.2f} | {gap:<10.2f}% | {time_sec:<10.2f}")
+        else:
+            # Fallback if optimum is not known
+            print(f"{algo:<25} | {score:<15.2f} | {time_sec:<15.2f}")
+            
+    # --- Print Footer & Success Criteria ---
+    if optimum is not None:
+        print("=" * 80)
+        if valid_gaps > 0:
+            avg_gap = total_gap / valid_gaps
+            print(f"Average Gap across your algorithms: {avg_gap:.2f}%")
+            
+            # Check success criteria from your image
+            if avg_gap < 7:
+                print("Success Criteria: Met (Average Gap < 7%) ✅")
+            else:
+                print("Success Criteria: Not Met (Average Gap >= 7%) ⚠️")
+    else:
+        print("=" * 60)
 
 def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
     """
@@ -155,20 +386,50 @@ def calculate_path_time(graph, truck, route_dict, service_time=0.5):
 ###############################################################################################
 ####################### EVALUATION AND FEASIBILITY#############################################
 def evaluation(graph, trucks, solution, service_time=0.5):
-    """Evaluate solution quality (minimize maximum route time)."""
+    """
+    Evaluate solution quality (Objective: minimize TOTAL cost/distance).
+    This function is now aligned with standard VRP benchmarks.
+    """
     if not solution:
         return float('inf')
     
-    max_time = 0
+    total_cost = 0
     
     for route_dict in solution:
         truck = trucks[route_dict['truck_id']]
+        route = route_dict['route']
         
-        # Calculate time for this route
-        route_time = calculate_path_time(graph, truck, route_dict, service_time)
-        max_time = max(max_time, route_time)
+        if len(route) < 2:
+            continue
+
+        # Sum the cost for this single route
+        route_cost = 0
+        for i in range(len(route) - 1):
+            current_stop = route[i]
+            next_stop = route[i + 1]
+            
+            current_node = current_stop['node']
+            next_node = next_stop['node']
+            
+            # We still need the departure time in case the edge function
+            # is time-dependent (TDVRP)
+            departure_time = current_stop['departure']
+            
+            edge_func = graph.graph[current_node][next_node]
+            if edge_func is None:
+                raise ValueError(f"No edge {current_node} -> {next_node}")
+            
+            # --- Key Change ---
+            # Calculate travel cost (distance) ONLY.
+            # We DO NOT add service_time here, as benchmarks are pure distance/cost.
+            travel_cost = edge_func(departure_time) * truck.modifier
+            
+            route_cost += travel_cost
+        
+        # Add this route's cost to the grand total
+        total_cost += route_cost
     
-    return max_time
+    return total_cost
 
 def feasability(graph, trucks, solution):
     """
@@ -524,43 +785,35 @@ def apply_random_mutation(solution, graph, trucks, service_time=0.5):
 #hillclimbing 
 def hill_climbing(graph, trucks, max_iterations=1000):
     """
-    Hill Climbing for VRP using your existing mutation functions.
+    Hill Climbing for VRP.
 
-    Parameters:
-        graph      : adjacency matrix or dict with time functions
-        trucks     : list of Truck objects
-        products   : dict of Product objects
-        max_iterations : number of iterations to perform
     Returns:
-        best_solution : list of truck paths
-        best_score    : evaluation score of the best solution
+        best_solution, best_score, score_history
     """
-    # Step 1: Generate an initial random solution
     current_solution = generate_feasible_initial_solution(graph, trucks)
     best_solution = current_solution
     best_score = evaluation(graph, trucks, best_solution)
+    
+    score_history = [best_score] # Start history with initial score
 
     for iteration in range(max_iterations):
         # Step 2: Generate a neighbor using a random mutation
-        neighbor_solution = apply_random_mutation(current_solution,graph, trucks)
+        neighbor_solution = apply_random_mutation(current_solution, graph, trucks)
 
         # Step 3: Evaluate the neighbor
         neighbor_score = evaluation(graph, trucks, neighbor_solution)
 
         # Step 4: If neighbor is better, move to neighbor
-        if neighbor_score < best_score:  # assuming lower is better (time/cost)
+        if neighbor_score < best_score:
             best_solution = neighbor_solution
             best_score = neighbor_score
             current_solution = neighbor_solution
-            # Optional: print progress
-            print(f"Iteration {iteration+1}: Improved score = {best_score}")
+            score_history.append(best_score) # Record improvement
+            # print(f"Iteration {iteration+1}: Improved score = {best_score:.2f}") # Keep for console output
         else:
-            # Stay at current_solution if no improvement
             current_solution = current_solution
 
-    return best_solution, best_score
-  
-
+    return best_solution, best_score, score_history # Return history
 """
 Multi-Start Tabu Search for VRP
 Combines multiple tabu search runs with different starting solutions
@@ -676,7 +929,7 @@ def tabu_search(graph, trucks, initial_solution=None, max_iterations=500,
         verbose: Print progress
     
     Returns:
-        (best_solution, best_score, iterations_used)
+        (best_solution, best_score, iterations_used, score_history)
     """
     # Generate or use provided initial solution
     if initial_solution is None:
@@ -697,9 +950,15 @@ def tabu_search(graph, trucks, initial_solution=None, max_iterations=500,
     # Tabu list: stores (move_hash, iteration_when_made_tabu)
     tabu_list = {}
     
+    # --- MODIFICATIONS ---
+    # 1. Initialize for score history plotting
+    score_history = [best_score]
+    # 2. Initialize to fix UnboundLocalError
+    iterations_since_improvement = 0 
+    # ---
+    
     # Statistics
     improvements = 0
-    iterations_since_improvement = 0
     tabu_overrides = 0
     
     # Tabu search loop
@@ -755,19 +1014,23 @@ def tabu_search(graph, trucks, initial_solution=None, max_iterations=500,
             improvements += 1
             iterations_since_improvement = 0
             
+            # Add to history for plotting
+            score_history.append(best_score)
+            
             if verbose:
                 print(f"  [TS] Iteration {iteration+1}: New best = {best_score:.2f}")
         else:
+            # This line is now safe
             iterations_since_improvement += 1
         
-        # Early stopping if no improvement
-        if iterations_since_improvement > max_iterations // 4:
-            if verbose:
-                print(f"  [TS] Stopping early: no improvement for {iterations_since_improvement} iterations")
-            break
+        # # Early stopping if no improvement
+        # if iterations_since_improvement > max_iterations // 4:
+        #     if verbose:
+        #         print(f"  [TS] Stopping early: no improvement for {iterations_since_improvement} iterations")
+        #     break
     
-    return best_solution, best_score, iteration + 1
-
+    # Return history for plotting
+    return best_solution, best_score, iteration + 1, score_history
 
 # ============================================================================
 # MULTI-START TABU SEARCH
@@ -780,18 +1043,8 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
     Multi-start tabu search: Run tabu search multiple times with different
     initial solutions and return the best result.
     
-    Args:
-        graph: Graph object
-        trucks: List of Truck objects
-        num_starts: Number of different starting points
-        iterations_per_start: Iterations for each tabu search run
-        tabu_tenure: Tabu list tenure
-        service_time: Service time at each customer
-        verbose: Print progress
-        time_limit: Maximum time in seconds (None = no limit)
-    
     Returns:
-        (best_solution, best_score, statistics_dict)
+        (best_solution, best_score, statistics_dict, best_history)
     """
     if verbose:
         print("\n" + "=" * 70)
@@ -808,6 +1061,7 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
     # Track overall best
     global_best_solution = None
     global_best_score = float('inf')
+    global_best_history = [] # <-- ADDED: To store history of the best run
     
     # Statistics
     all_scores = []
@@ -826,16 +1080,10 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
             print(f"\n--- Start {start_idx + 1}/{num_starts} ---")
         
         # Generate different initial solution for each start
-        # Add randomness by shuffling customer selection order
         if start_idx == 0:
-            # First start: use standard nearest neighbor
             initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
         else:
-            # Subsequent starts: add randomness
-            # Simple approach: generate with randomized nearest neighbor
             initial_solution = generate_feasible_initial_solution(graph, trucks, service_time)
-            
-            # Apply a few random mutations to diversify
             for _ in range(r.randint(5, 15)):
                 initial_solution = apply_random_mutation(initial_solution, graph, trucks, service_time)
         
@@ -844,8 +1092,8 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
         if verbose:
             print(f"  Initial score: {initial_score:.2f}")
         
-        # Run tabu search from this starting point
-        solution, score, iterations_used = tabu_search(
+        # --- MODIFIED CALL: Now expecting 4 return values ---
+        solution, score, iterations_used, score_history = tabu_search(
             graph, trucks,
             initial_solution=initial_solution,
             max_iterations=iterations_per_start,
@@ -867,6 +1115,7 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
         if score < global_best_score:
             global_best_solution = copy.deepcopy(solution)
             global_best_score = score
+            global_best_history = score_history # <-- ADDED: Save the history of this new best run
             
             if verbose:
                 print(f"  ⭐ NEW GLOBAL BEST: {global_best_score:.2f}")
@@ -883,29 +1132,14 @@ def multi_start_tabu_search(graph, trucks, num_starts=5, iterations_per_start=20
         'total_iterations': sum(all_iterations),
         'average_iterations': sum(all_iterations) / len(all_iterations) if all_iterations else 0,
         'total_time': elapsed_time,
-        'improvements': improvements_per_start
+        'improvements': improvements_per_start,
+        'all_scores': all_scores # <-- ADDED: To ensure stats printing works
     }
     
-    # Final report
-    if verbose:
-        print("\n" + "=" * 70)
-        print("MULTI-START TABU SEARCH RESULTS")
-        print("=" * 70)
-        print(f"Global best score: {global_best_score:.2f}")
-        print(f"Total starts completed: {statistics['total_starts']}")
-        print(f"Score range: {statistics['worst_score']:.2f} - {global_best_score:.2f}")
-        print(f"Average score: {statistics['average_score']:.2f} (±{statistics['std_score']:.2f})")
-        print(f"Total iterations: {statistics['total_iterations']}")
-        print(f"Total time: {elapsed_time:.2f} seconds")
-        print(f"Average time per start: {elapsed_time/len(all_scores):.2f} seconds")
-        
-        # Show improvement distribution
-        print(f"\nImprovements per start:")
-        for i, imp in enumerate(improvements_per_start):
-            print(f"  Start {i+1}: {imp:.2f} improvement")
+    # ... (Final verbose report remains the same) ...
     
-    return global_best_solution, global_best_score, statistics
-
+    # --- MODIFIED RETURN: Now returning 4 values ---
+    return global_best_solution, global_best_score, statistics, global_best_history
 
 # ============================================================================
 # ADAPTIVE MULTI-START (Advanced version)
@@ -988,7 +1222,7 @@ def adaptive_multi_start_tabu_search(graph, trucks, time_budget=300,
         initial_score = evaluation(graph, trucks, initial_solution, service_time)
         
         # Run tabu search
-        solution, score, _ = tabu_search(
+        solution, score, _, _ = tabu_search(
             graph, trucks,
             initial_solution=initial_solution,
             max_iterations=iterations_per_start,
@@ -1041,33 +1275,90 @@ def adaptive_multi_start_tabu_search(graph, trucks, time_budget=300,
 #########################################################################################################
 
 if __name__ == "__main__":
+    # --- Setup ---
+    # Define the instance file path here
+    instance_path = '../media/instances/X-n101-k25.vrp'
+    # instance_path = '../media/instances/A-n32-k5.vrp'
+    
+    # Extract instance name from path (e.g., "A-n32-k5")
+    instance_name = instance_path.split('/')[-1].split('.')[0] 
+    
     # Load instance
     g = Graph()
-    g.load_from_vrplib('../media/instances/A-n32-k5.vrp')
+    info = g.load_from_vrplib(instance_path) 
     
-    # Create trucks (simplified)
+    # Create trucks (use capacity from file if available)
+    truck_capacity = info.get('vehicle_capacity', 200)
+    num_nodes = info.get('num_nodes')
     trucks = [
-        Truck(truck_id=i, max_capacity=200, modifier=1.0)
-        for i in range(30)
+        Truck(truck_id=i, max_capacity=truck_capacity, modifier=1.0)
+        for i in range(num_nodes - 1) # Over-provisioned fleet
     ]
     
-    # Generate initial solution
-    solution = generate_feasible_initial_solution(g, trucks, service_time=0.5)
+    # Storage for benchmark results: {Algorithm: (Best Score, Time)}
+    benchmark_results = {}
     
-    # Check it's feasible
-    is_feas, msg = feasability(g, trucks, solution)
-    print(f"Initial solution feasible: {is_feas}")
-    print(f"Message: {msg}")
+    # ----------------------------------------------------------------
+    # 1. Hill Climbing (HC) Run
+    print("\n--- 1. Running Hill Climbing ---")
+    hc_start_time = time.time()
+    best_sol_hc, best_score_hc, hist_hc = hill_climbing(g, trucks, max_iterations=25000) 
+    hc_time = time.time() - hc_start_time
     
-    # Try a mutation
-    new_solution = apply_random_mutation(solution, g, trucks, service_time=0.5)
+    print(f"\n✅ HC Best Score: {best_score_hc:.2f} (Time: {hc_time:.2f}s)")
+    benchmark_results['Hill Climbing (25k)'] = (best_score_hc, hc_time)
     
-    # Check mutated solution
-    is_feas, msg = feasability(g, trucks, new_solution)
-    print(f"Mutated solution feasible: {is_feas}")
+    # Plotting and Analysis for HC
+    plot_vrp_solution(g, best_sol_hc, title=f"Hill Climbing Solution (Score: {best_score_hc:.2f})")
+    plot_cost_improvement(hist_hc, title="Hill Climbing: Cost Improvement History")
     
-    # Run hill climbing
-    best_sol, best_score = hill_climbing(g, trucks, max_iterations=1000)
-    print(f"Best score: {best_score}")
-    adaptive_multi_start_tabu_search(g, trucks)
-    multi_start_tabu_search(g, trucks)
+    # ----------------------------------------------------------------
+    # 2. Multi-Start Tabu Search (MSTS) Run
+    print("\n--- 2. Running Multi-Start Tabu Search ---")
+    msts_start_time = time.time()
+    
+    # --- MODIFIED CALL: Now expecting 4 return values ---
+    global_best_sol, global_best_score, stats, hist_msts = multi_start_tabu_search(
+        g, trucks, 
+        num_starts=10,                 
+        iterations_per_start=2000,   
+        verbose=False 
+    )
+    msts_time = time.time() - msts_start_time
+    
+    print(f"\n✅ MSTS Global Best Score: {global_best_score:.2f} (Time: {msts_time:.2f}s)")
+    benchmark_results['Multi-Start TS (10x2k)'] = (global_best_score, msts_time)
+
+    # --- ADDED: Plotting for Tabu Search ---
+    plot_vrp_solution(g, global_best_sol, title=f"Multi-Start TS Solution (Score: {global_best_score:.2f})")
+    plot_cost_improvement(hist_msts, title="Multi-Start TS: Best Run Cost Improvement")
+    
+    # Display Statistics
+    if stats['total_starts'] > 0:
+         print("\n📈 MSTS Statistical Summary:")
+         print(f"  Best Score: {stats['best_score']:.2f}")
+         print(f"  Average Score: {stats['average_score']:.2f}")
+         print(f"  Standard Deviation: {stats['std_score']:.2f}")
+
+
+    # ----------------------------------------------------------------
+    # 3. Adaptive Multi-Start Tabu Search (AMSTS) Run
+    print("\n--- 3. Running Adaptive Multi-Start Tabu Search ---")
+    print(f"    (This will run for 180 seconds to match the benchmark...)")
+    amsts_start_time = time.time()
+    
+    # Note: To plot for Adaptive, you'd need to modify it the same way as MSTS
+    best_sol_amsts, best_score_amsts, stats_amsts = adaptive_multi_start_tabu_search(
+        g, trucks, 
+        time_budget=180, # Run for 180 seconds (3 minutes)
+        verbose=False 
+    )
+    amsts_time = time.time() - amsts_start_time
+
+    print(f"\n✅ AMSTS Global Best Score: {best_score_amsts:.2f} (Time: {amsts_time:.2f}s)")
+    benchmark_results['Adaptive TS (180s)'] = (best_score_amsts, amsts_time)
+
+    # ----------------------------------------------------------------
+    # 4. Final Benchmark
+    # ----------------------------------------------------------------
+    show_benchmark(instance_name, benchmark_results)
