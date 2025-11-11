@@ -320,18 +320,22 @@ def leaving_time_mutation(graph, trucks, products, solution):
 def random_possible_mutation(graph, trucks, products, current_solution):
     """
     Randomly choose one type of mutation (cycle, delivery, or leaving time)
-    and apply it to the current solution.
+    with weighted probabilities, and apply it to the current solution.
     """
-    mutation_functions = [
-        cycle_mutation,
-        delivery_mutation,
-        leaving_time_mutation
-    ]
+    # Generate a random number between 0 and 1
+    p = r.random()
 
-    # Pick one mutation randomly
-    chosen_mutation = r.choice(mutation_functions)
+    if p < 0.2:
+        chosen_mutation = cycle_mutation          # 20% chance
+    elif p < 0.5:
+        chosen_mutation = delivery_mutation       # 30% chance
+    elif p < 0.8:
+        chosen_mutation = leaving_time_mutation   # 30% chance
+    else:
+        # Fallback: choose randomly among all mutation types (20% chance)
+        chosen_mutation = r.choice([cycle_mutation, delivery_mutation, leaving_time_mutation])
 
-    # Apply it and return the new solution
+    # Apply the chosen mutation
     new_solution = chosen_mutation(graph, trucks, products, current_solution)
 
     return new_solution
