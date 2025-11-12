@@ -1,6 +1,5 @@
 import random as r
 from collections import deque
-from enum import Enum
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
