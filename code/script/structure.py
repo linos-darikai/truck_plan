@@ -1,37 +1,79 @@
 import random as r
-from collections import namedtuple
 from collections import deque
+from enum import Enum
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import dill
 import math as m
 import vrplib
-from path_finding import hill_climbing, feasability, apply_random_mutation, generate_feasible_initial_solution
 
 
-##########################################################################################################
 ###########################################################################################################
 ###########################################################################################################
-#region Truck
+###########################################################################################################
+# region PRODUCT
+def create_random_list_product(inter_nb_product = (1,10), \
+                               inter_capacity = (1,10), \
+                               inter_delivery_time = (1,5)):
+    
+    nb_product = r.randint(inter_nb_product[0],inter_nb_product[1])
+    products = []
+
+    for i in range(nb_product):
+        product = {"name": i,
+                   "capacity": r.randint(inter_capacity[0],inter_capacity[1]),
+                   "delivery": r.uniform(inter_delivery_time[0],inter_delivery_time[1])}
+        products.append(product)
+    
+    return products
+ 
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region Truck
 class Truck:
     """Simplified truck for single product, uniform capacity."""
-    def __init__(self, truck_id, max_capacity=100, modifier=1.0):
+    def __init__(self, truck_id, max_capacity=100, modifier=1.0, allowed_products = None):
         self.truck_id = truck_id
-        self.truck_type = f"Truck_{truck_id}"  # Keep for compatibility
         self.max_capacity = max_capacity
         self.modifier = modifier
-        
-        # Keep these for compatibility with old code
-        self.max_volume = max_capacity
-        self.max_weight = max_capacity
-        self.allowed_products = None  # No restrictions
+        self.allowed_products = allowed_products
     
     def __repr__(self):
         return f"Truck(id={self.truck_id}, capacity={self.max_capacity}, modifier={self.modifier})"
 
+def generate_random_truck(products, \
+                          inter_nb_truck = (1,10), \
+                          inter_capacity = (50,100), \
+                          inter_modifier = (0.5,1.5), \
+                          inter_nb_product = (1,5)):
+    """
+    Generate a random truck based on the given list of products.
+    """
 
+    nb_trucks = r.randint(inter_nb_truck[0],inter_nb_truck[1])
+    trucks = []
 
+    for i in range(nb_trucks):
+        nb_product_allowed = r.randint(inter_nb_product[0], min(inter_nb_product[1], len(products)))
+        truck = Truck(i,
+                      r.randint(inter_capacity[0],inter_capacity[1]),
+                      r.uniform(inter_modifier[0],inter_modifier[1]),
+                      r.choices(products, nb_product_allowed)
+                      )
+        truck.allowed_products()
+        trucks.append(truck)
+
+    return trucks
+
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
 # region GRAPH
 class Node:
     def __init__(self, node_id, demand=None):
@@ -48,7 +90,7 @@ class Node:
             self.demand = demand
         else:
             # Depot has no demand
-            self.demand = 0 if node_id == 0 else 1
+            self.demand = 0 if node_id == 0 else None
     
     def __repr__(self):
         return f"Node({self.node_id}, demand={self.demand})"
