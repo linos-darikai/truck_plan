@@ -8,12 +8,12 @@ Solution new structure
 solution = [
     {
         'truck_id': 0,
-        'total_load': 35,  # Sum of all deliveries
+        'total_load': {1: 35}, // change into dict(contemplate) # Sum of all deliveries
         'route': [
-            {'node': 0, 'arrival': 0, 'service': 0, 'departure': 0, 'deliver': 0, 'load_after': 35},
-            {'node': 3, 'arrival': 10.0, 'service': 0.5, 'departure': 10.5, 'deliver': 15, 'load_after': 20},
-            {'node': 7, 'arrival': 25.0, 'service': 0.3, 'departure': 25.3, 'deliver': 20, 'load_after': 0},
-            {'node': 0, 'arrival': 40.0, 'service': 0, 'departure': 40.0, 'deliver': 0, 'load_after': 0}
+            {'node': 0, 'arrival': 0, 'service': 0, 'departure': 0, 'deliver': {1: 0}, 'load_after': {1: 35}},
+            {'node': 3, 'arrival': 10.0, 'service': 0.5, 'departure': 10.5, 'deliver': {1: 15}, 'load_after': {1: 20}},
+            {'node': 7, 'arrival': 25.0, 'service': 0.3, 'departure': 25.3, 'deliver': {1: 20}, 'load_after': {1: 0}},
+            {'node': 0, 'arrival': 40.0, 'service': 0, 'departure': 40.0, 'deliver': {1: 0}, 'load_after': {1: 0}}
         ]
     },
     {...}
@@ -40,30 +40,29 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
     current_load = 0
     
     # Calculate total load needed for this route
-    total_load = 0
+    total_load = {}
     for node_id in node_sequence:
         if node_id != 0:  # Skip depot
             node = graph.nodes[node_id]
-            # Handle both int demand and dict demand
-            if isinstance(node.demand, int):
-                total_load += node.demand
-            elif isinstance(node.demand, dict):
-                total_load += sum(node.demand.values())
+            if isinstance(node.demand, dict):
+                for key in node.demand:
+                    if key in total_load.keys():
+                        total_load.update({key: total_load[key] + node.demand[key]})
+                    else:
+                        total_load[key] = node.demand[key]
             else:
-                total_load += 0
+                total_load.update({1: 0})
     
     for i, node_id in enumerate(node_sequence):
         node = graph.nodes[node_id]
         
         # Get demand for this node
         if node_id == 0:
-            demand = 0
-        elif isinstance(node.demand, int):
-            demand = node.demand
+            demand = {1: 0}
         elif isinstance(node.demand, dict):
-            demand = sum(node.demand.values())
+            demand = node.demand
         else:
-            demand = 0
+            demand = {}
         
         # Service time (0 at depot, constant at customers)
         service = service_time if node_id != 0 else 0
@@ -75,7 +74,7 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
             'service': service,
             'departure': current_time + service,
             'deliver': demand,
-            'load_after': 0  # Will calculate below
+            'load_after': {}  # Will calculate below
         }
         
         # Calculate load after this delivery
@@ -84,7 +83,14 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
             current_load = total_load
         else:
             # Deliver at customer
-            current_load -= demand
+            side_dict = {}
+            for key in current_load.keys():
+                delivered = demand.get(key, 0)  
+                if key > 0:
+                    side_dict[key] = current_load[key] - delivered
+                else:
+                    side_dict[key] = 0
+            current_load = side_dict
         
         stop['load_after'] = current_load
         route.append(stop)
@@ -103,7 +109,7 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
             current_time = stop['departure'] + travel_time
     
     # Calculate max load (for capacity checking)
-    max_load = max(stop['load_after'] for stop in route)
+    max_load = max(sum(stop['load_after'].values()) for stop in route)
     
     return {
         'truck_id': truck_id,
@@ -223,7 +229,7 @@ def feasability(graph, trucks, solution):
                 return False, f"Truck {truck_idx}: No edge {curr} -> {next_node}"
         
         # Check 4: Capacity
-        total_load = sum(delivers[1:-1])  # Exclude depot visits
+        total_load = sum([sum(s.values()) for s in delivers[1:-1]])  # Exclude depot visits
         if total_load > truck.max_capacity:
             return False, f"Truck {truck_idx}: Capacity exceeded ({total_load}/{truck.max_capacity})"
         
@@ -235,18 +241,12 @@ def feasability(graph, trucks, solution):
     for node_idx in range(1, n_nodes):  # Skip depot
         node = graph.nodes[node_idx]
         
-        # Handle both int and dict demand
-        if isinstance(node.demand, int):
+        if isinstance(node.demand, dict):
             demand = node.demand
-        elif isinstance(node.demand, dict):
-            demand = sum(node.demand.values())
         else:
-            demand = 0
-        
-        if deliveries[node_idx] < demand:
+            demand = {}
+        if deliveries[node_idx] != demand:
             return False, f"Node {node_idx}: Under-delivered ({deliveries[node_idx]}/{demand})"
-        if deliveries[node_idx] > demand:
-            return False, f"Node {node_idx}: Over-delivered ({deliveries[node_idx]}/{demand})"
     
     return True, "Solution is feasible ✅"
 
@@ -281,7 +281,7 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
         # Build route for this truck
         route = [0]  # Start at depot
         current_node = 0
-        current_load = 0
+        current_load = {}
         current_time = 0
         
         while customers:
@@ -292,10 +292,10 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
             for customer in customers:
                 # Get demand (handle both int and dict)
                 node = graph.nodes[customer]
-                demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+                demand = node.demand 
                 
                 # Check capacity
-                if current_load + demand <= truck.max_capacity:
+                if sum(current_load.values()) + sum(demand.values()) <= truck.max_capacity:
                     # Calculate distance
                     dist = graph.graph[current_node][customer](current_time)
                     if dist < best_distance:
@@ -307,12 +307,19 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
             
             # Add to route
             node = graph.nodes[best_customer]
-            demand = node.demand if isinstance(node.demand, int) else sum(node.demand.values())
+            demand = node.demand 
             
             # Calculate times
             travel_time = graph.graph[current_node][best_customer](current_time) * truck.modifier
             current_time += travel_time + service_time
-            current_load += demand
+            s = {}
+            for key, value in current_load.items():
+                if demand[key]:
+                    s[key] = value + demand[key]
+                else:
+                    s[key] = value
+
+            current_load = s
             
             route.append(best_customer)
             customers.remove(best_customer)
@@ -408,9 +415,6 @@ def move_customer_mutation(solution, graph, trucks, service_time=0.5):
     customer_node = source_route[cust_pos]['node']
     customer_demand = graph.nodes[customer_node].demand
     
-    # Handle dict demand
-    if isinstance(customer_demand, dict):
-        customer_demand = sum(customer_demand.values())
     
     # Select destination route
     dest_idx = r.choice([i for i in range(len(solution)) if i != source_idx])
@@ -419,7 +423,7 @@ def move_customer_mutation(solution, graph, trucks, service_time=0.5):
     
     # Check capacity
     current_load = new_solution[dest_idx]['total_load']
-    if current_load + customer_demand > dest_truck.max_capacity:
+    if sum(current_load.values()) + sum(customer_demand.values()) > dest_truck.max_capacity:
         return None  # Exceeds capacity
     
     # Remove from source
