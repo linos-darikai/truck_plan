@@ -1,5 +1,4 @@
 import random as r
-from collections import namedtuple
 from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
@@ -7,31 +6,75 @@ import networkx as nx
 import dill
 import math as m
 import vrplib
-from path_finding import hill_climbing, feasability, apply_random_mutation, generate_feasible_initial_solution
 
 
-##########################################################################################################
 ###########################################################################################################
 ###########################################################################################################
-#region Truck
+###########################################################################################################
+# region PRODUCT
+def create_random_list_product(inter_nb_product = (1,10), \
+                               inter_capacity = (1,10), \
+                               inter_delivery_time = (1,5)):
+    
+    nb_product = r.randint(inter_nb_product[0],inter_nb_product[1])
+    products = []
+
+    for i in range(nb_product):
+        product = {"name": i,
+                   "capacity": r.randint(inter_capacity[0],inter_capacity[1]),
+                   "delivery": r.uniform(inter_delivery_time[0],inter_delivery_time[1])}
+        products.append(product)
+    
+    return products
+ 
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region Truck
 class Truck:
     """Simplified truck for single product, uniform capacity."""
-    def __init__(self, truck_id, max_capacity=100, modifier=1.0):
+    def __init__(self, truck_id, max_capacity=100, modifier=1.0, allowed_products = None):
         self.truck_id = truck_id
-        self.truck_type = f"Truck_{truck_id}"  # Keep for compatibility
         self.max_capacity = max_capacity
         self.modifier = modifier
-        
-        # Keep these for compatibility with old code
-        self.max_volume = max_capacity
-        self.max_weight = max_capacity
-        self.allowed_products = None  # No restrictions
+        self.allowed_products = allowed_products
     
     def __repr__(self):
         return f"Truck(id={self.truck_id}, capacity={self.max_capacity}, modifier={self.modifier})"
 
+def generate_random_truck(products, \
+                          inter_nb_truck = (1,10), \
+                          inter_capacity = (50,100), \
+                          inter_modifier = (0.5,1.5), \
+                          inter_nb_product = (1,5)):
+    """
+    Generate a random truck based on the given list of products.
+    """
+    if not products:
+        raise ValueError("Product dictionary is empty. Cannot create random node.")
 
+    nb_trucks = r.randint(inter_nb_truck[0],inter_nb_truck[1])
+    trucks = []
 
+    for i in range(nb_trucks):
+        nb_product_allowed = r.randint(inter_nb_product[0], min(inter_nb_product[1], len(products)))
+        products_id_possible = r.sample(range(len(products)), nb_product_allowed)
+        truck = Truck(i,
+                      r.randint(inter_capacity[0],inter_capacity[1]),
+                      r.uniform(inter_modifier[0],inter_modifier[1]),
+                      products_id_possible
+                      )
+        trucks.append(truck)
+
+    return trucks
+
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
 # region GRAPH
 class Node:
     def __init__(self, node_id, demand=None):
@@ -40,7 +83,7 @@ class Node:
         
         Args:
             node_id: Integer ID of node (0 = depot)
-            demand: Integer demand (single product) or dict (multiple products)
+            demand: dict for products {1: int}
         """
         self.node_id = node_id
         
@@ -48,20 +91,28 @@ class Node:
             self.demand = demand
         else:
             # Depot has no demand
-            self.demand = 0 if node_id == 0 else 1
+            self.demand = {} if node_id == 0 else {}
     
     def __repr__(self):
         return f"Node({self.node_id}, demand={self.demand})"
     
-def random_node(products):
+def random_node(node_id, \
+                products, \
+                inter_nb_diff_product = (0,5), \
+                inter_nb_product = (1,10)):
+
     if not products:
         raise ValueError("Product dictionary is empty. Cannot create random node.")
     
-    nb_products = r.randint(1,min(len(products),5))
-    selected_products = r.sample(list(products.keys()), nb_products)
+    nb_products = r.randint(inter_nb_diff_product[0], min(inter_nb_diff_product[1],len(products)))
+    products_id_demand = r.sample(range(len(products)), nb_products)
 
-    demand = {p: r.randint(1, 20) for p in selected_products}
-    n = Node(demand = demand)
+    demand = {}
+
+    for id_product in products_id_demand:
+        demand[id_product] = r.randint(inter_nb_product[0],inter_nb_product[1])
+
+    n = Node(node_id, demand)
     return n
        
 class Graph:
@@ -136,17 +187,17 @@ class Graph:
         if 'demand' in instance:
             demands = instance['demand']
             for i in range(n):
-                demand = int(demands[i]) if i < len(demands) else 0
+                demand = {1 : int(demands[i])} if i < len(demands) else {1:0}
                 node = Node(node_id=i, demand=demand)
                 self.nodes.append(node)
         else:
             # No demand info - create default
-            self.nodes.append(Node(node_id=0, demand=0))  # Depot
+            self.nodes.append(Node(node_id=0, demand={1: 0}))  # Depot
             for i in range(1, n):
-                self.nodes.append(Node(node_id=i, demand=r.randint(5, 20)))
+                self.nodes.append(Node(node_id=i, demand={1: r.randint(5, 20)}))
         
         # Calculate total demand
-        total_demand = sum(node.demand for node in self.nodes[1:])
+        total_demand = sum(node.demand[1] for node in self.nodes[1:])
         print(f"Total demand: {total_demand}")
         
         # Create edge functions based on Euclidean distances
@@ -187,6 +238,7 @@ class Graph:
             'vehicle_capacity': vehicle_capacity,
             'num_vehicles': num_vehicles
         }
+    
     #print
     def print_demand(self):
         """
@@ -272,57 +324,34 @@ class Graph:
         plt.ylabel("Y")
         plt.show()
 
-
     #random
-    def is_strongly_connected(self):
-        """Check if the directed graph is strongly connected."""
-        n = len(self.nodes)
-
-        def bfs(start):
-            visited = [False]*n
-            queue = deque([start])
-            visited[start]=True
-            while queue:
-                node = queue.popleft()
-                for neighbor, val in enumerate(self.graph[node]):
-                    if val is not None:
-                        if neighbor < start:
-                            return True
-                        if not visited[neighbor]:
-                            visited[neighbor]=True
-                            queue.append(neighbor)
-            return all(visited)
-
-        for i in range(n):
-            if not bfs(i):
-                return False
-        return True
-
-    def create_connected_matrix(self, productes, nb_nodes):
-        """Generate a random strongly connected directed graph with time-dependent weights."""
-        self.nodes = [random_node(productes) for _ in range(nb_nodes)]
+    def create_random_compleat_matrix(self, productes, nb_nodes):
+        """Generate a random compleat directed graph with time-dependent weights."""
+        self.nodes = [random_node(i, productes) for i in range(nb_nodes)]
         self.graph = [[None for _ in range(nb_nodes)] for _ in range(nb_nodes)]
         for i in range(nb_nodes):
             for j in range(nb_nodes):
-                if i != j and r.random()<0.6:
+                if i != j:
                     self.graph[i][j] = self.create_time_function(self.time_line)
-        while not self.is_strongly_connected():
-            i, j = r.sample(range(nb_nodes), 2)
-            if j not in self.graph[i]:
-                self.graph[i][j] = self.create_time_function(self.time_line)
         return
 # endregion
 
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
 # region INSTANCE
-def create_random_instance(nb_nodes = 5, nb_truck = 2):
-    products_dict = {}
-    generate_random_product(products_dict)
+def create_random_instance(nb_nodes = 5, nb_truck = 2, nb_product = 3):
+    products_dict = create_random_list_product(inter_nb_product = (nb_product, nb_product))
+
+    trucks = generate_random_truck(products_dict, inter_nb_truck = (nb_truck, nb_truck))
+
+    products_delivered = set()
+    for truck in trucks:
+        products_delivered.update(truck.allowed_products)
+    products_delivered = list(products_delivered)
 
     g = Graph()
-    g.create_connected_matrix(products_dict, nb_nodes)
-
-
-    trucks = generate_list_random_truck(products_dict, nb_truck)
+    g.create_random_compleat_matrix(products_delivered, nb_nodes)
 
     instance = {"product": products_dict, "graph": g, "trucks": trucks}
     return instance
@@ -354,10 +383,3 @@ def load_instance(filename="instance"):
         instance = dill.load(f)
     return instance
 # endregion
-
-# ============================
-#        MAIN / TEST
-# ============================
-
-# --- TEST BLOCK ---
-# In structure.py or main file
