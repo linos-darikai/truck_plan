@@ -40,7 +40,7 @@ class Node:
         
         Args:
             node_id: Integer ID of node (0 = depot)
-            demand: Integer demand (single product) or dict (multiple products)
+            demand: dict for products {1: int}
         """
         self.node_id = node_id
         
@@ -48,7 +48,7 @@ class Node:
             self.demand = demand
         else:
             # Depot has no demand
-            self.demand = 0 if node_id == 0 else 1
+            self.demand = {} if node_id == 0 else {}
     
     def __repr__(self):
         return f"Node({self.node_id}, demand={self.demand})"
@@ -136,17 +136,17 @@ class Graph:
         if 'demand' in instance:
             demands = instance['demand']
             for i in range(n):
-                demand = int(demands[i]) if i < len(demands) else 0
+                demand = {1 : int(demands[i])} if i < len(demands) else {1:0}
                 node = Node(node_id=i, demand=demand)
                 self.nodes.append(node)
         else:
             # No demand info - create default
-            self.nodes.append(Node(node_id=0, demand=0))  # Depot
+            self.nodes.append(Node(node_id=0, demand={1: 0}))  # Depot
             for i in range(1, n):
-                self.nodes.append(Node(node_id=i, demand=r.randint(5, 20)))
+                self.nodes.append(Node(node_id=i, demand={1: r.randint(5, 20)}))
         
         # Calculate total demand
-        total_demand = sum(node.demand for node in self.nodes[1:])
+        total_demand = sum(node.demand[1] for node in self.nodes[1:])
         print(f"Total demand: {total_demand}")
         
         # Create edge functions based on Euclidean distances
