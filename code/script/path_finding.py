@@ -1399,7 +1399,7 @@ if __name__ == "__main__":
     # random.seed(42)
     # --- Setup ---
     # Define the instance file path here
-    instance_path = '../media/instances/.vrp'
+    instance_path = '../media/instances/A-n32-k5.vrp'
     # instance_path = '../media/instances/A-n32-k5.vrp'
 
     # Extract instance name from path (e.g., "A-n32-k5")
