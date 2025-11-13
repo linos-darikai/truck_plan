@@ -68,8 +68,8 @@ ADEME has launched a call for projects to test innovative mobility solutions. Ce
 #### <u>Optimisation problem ($\Pi_O$):</u>
 
 Input:
-* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight, fuel modifier)
-* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight, delivery time)
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, capacity, fuel modifier)
+* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit capacity, delivery time)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
@@ -92,8 +92,8 @@ Return the element $l^*$
 #### <u>Decision problem assocaite ($\Pi_D$):</u>
 
 Input:
-* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, max volume, max weight, fuel modifier)
-* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$ the list of sellable products as (unit volume, unit weight, delivery time)
+* $T \in (\mathbb{N}^\mathbb{N},\mathbb{N},\mathbb{R})^\mathbb{N}$ List of trucks as (Carriable objects, capacity, fuel modifier)
+* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$ the list of sellable products as (unit capacity, delivery time)
 * $G = \left\{ V, E,\omega,\phi\right\}$ a graph with <br>
   * $V$ the set of vertices,
   * $E \in V^2$ the set of edges,
@@ -120,8 +120,7 @@ time = []
 
 LOOP START i FROM 0 TO len(C)
     total = 0
-    max_volume = T[i][1]
-    max_weight = T[i][2]
+    capacity = T[i][1]
 
     LOOP START y FROM 0 TO len(C[i])
         CONDITION : (C[i][0][y], C[i][0][y+1]) ∈ E ?
@@ -132,8 +131,8 @@ LOOP START i FROM 0 TO len(C)
                             YES → RETURN False
                             NO → PASS
                     delivery[y][z] += C[i][1][z]
-                    max_volume -= C[i][1][z] * z(0)
-                    max_weight -= C[i][1][z] * z(1)
+                    capacity -= C[i][1][z] * z(0)
+
                 LOOP END
             NO → RETURN False
 
@@ -143,7 +142,7 @@ LOOP START i FROM 0 TO len(C)
 
     LOOP END
 
-    CONDITION : max_volume ≤ 0 and max_weight ≤ 0 ?
+    CONDITION : capacity ≤ 0 ?
         YES → RETURN False
         NO → PASS
 
@@ -220,7 +219,7 @@ Let:
 $$
 \begin{array}{rcl}
 T &=&[[0],|V_H|,|V_H|]\\
-\mathbb{E} &=&[(1,1)]\\
+\mathbb{E} &=&[(1,0)]\\
 G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
 && V = V_H \\
 && E = E_H \\
@@ -309,7 +308,7 @@ Let:
 $$
 \begin{array}{rcl}
 T &=&[[0],|V_H|,|V_H|]\\
-\mathbb{E} &=&[(1,1)]\\
+\mathbb{E} &=&[(1,0)]\\
 G &=&\left\{ V, E,\omega,\phi\right\} \text{ with}\\
 && V = V_H \\
 && E = E_H \\
@@ -379,20 +378,20 @@ So $\Pi_O$ is in NP-Hard.
 ## III) mathematical constraints
 ### III.1. remind
 We defined:
-* $T \in (\mathbb{N}^\mathbb{N}, \mathbb{N}, \mathbb{N}, \mathbb{R})^\mathbb{N}$:  
+* $T \in (\mathbb{N}^\mathbb{N}, \mathbb{N}, \mathbb{R})^\mathbb{N}$:  
   the list of **trucks**, where each truck $t$ is defined as  
   $$
-  t = (\text{AllowedProducts}, \text{MaxVolume}, \text{MaxWeight}, \text{FuelModifier})
+  t = (\text{AllowedProducts}, \text{Capacity}, \text{FuelModifier})
   $$
 * $C \in {(\mathbb{N}^{|\mathbb{E}|})^\mathbb{N}}^\mathbb{N}$:  
   the list of **the items cargo**, where
   $$C[t][i]$$
   represent the cargo of the truck $t$ in the $i$-th stop
 
-* $\mathbb{E} \in (\mathbb{N}^3)^\mathbb{N}$:  
+* $\mathbb{E} \in (\mathbb{N}^2)^\mathbb{N}$:  
   the list of **sellable products**, each product $e$ being  
   $$
-  e = (\text{UnitVolume}, \text{UnitWeight}, \text{DeliveryTime})
+  e = (\text{Capacity}, \text{DeliveryTime})
   $$
 
 * $G = \{V, E, \omega, \phi\}$:  
@@ -481,11 +480,7 @@ This ensures that no truck leaves a node before completing deliveries and travel
 Each truck cannot exceed its **volume** and **weight** limits:
 
 $$
-\forall t \in T,\ \forall m \in [0, |S[t]|-1), \quad
-\begin{cases}
-\displaystyle \sum_{e=0}^{|\mathbb{E}|-1} C[t][m][e] \times \mathbb{E}[e][0] \le T[t][1] & \text{(volume)}\\[1em]
-\displaystyle \sum_{e=0}^{|\mathbb{E}|-1} C[t][m][e] \times \mathbb{E}[e][1] \le T[t][2] & \text{(weight)}
-\end{cases}
+\forall t \in T,\ \forall m \in [0, |S[t]|-1), \quad \sum_{e=0}^{|\mathbb{E}|-1} C[t][m][e] \times \mathbb{E}[e][0] \le T[t][1] 
 $$
 ---
 #### III.3.e Ghost products
@@ -524,18 +519,16 @@ As seen in the mathematical problem modelisation, we need to have acces to 3 dat
 
 1. **List of `Truck` objects**  
    Each truck has the following attributes:  
-   - `truck_type` (`str`): The name/type of the truck.  
+   - `truck_id` (`int`): The identification of the truck.  
    - `allowed_products` (`set` of `str`): Names of products the truck is allowed to carry.  
-   - `max_volume` (`int`): Maximum volume the truck can carry.  
-   - `max_weight` (`int`): Maximum weight the truck can carry.  
+   - `capacity` (`int`): Maximum capacity the truck can carry.  
    - `cargo` (`dict` of `Product` → `int`): Dictionary mapping products to their quantities in the truck.
 
-2. **List of `Product` objects**  
+2. **List of `Product` dictionary**  
    Each product has the following attributes:  
-   - `name` (`str`): Name of the product.  
-   - `volume` (`int`): Volume of one unit of the product.  
-   - `weight` (`int`): Weight of one unit of the product.
-   - `delivery_time` (`float`): the time necessary to delivered the product
+   - `name` (`int`): Name of the product.  
+   - `capacity` (`int`): Volume of one unit of the product.  
+   - `delivery_time` (`int`): the time necessary to delivered the product
 
 3. **Graph `G`**
   
@@ -551,19 +544,21 @@ As seen in the mathematical problem modelisation, we need to have acces to 3 dat
    - `demands` (`dictionary`): Where the index is the name of the producte and the value is the number of them that is required.
 
 5. **Solution `S`**  
-   Represented as a list of lists of tuple `(node_index, products_delivered, leaving_time)`:  
-   - Each outer list corresponds to a truck.  
-   - Each inner list represents the sequence of nodes visited by that truck.  
-   - Each node contains:  
-     - `node_index` (`int`): index of the node visited.  
-     - `products_delivered` (`dict` of product identifiers and his quantity): products delivered at that node.
-     - `leaving_time` (`int`): the moment when the truck leave the place 
+   Represented as a list of dictionary where:
+   - Each element of the list represent a truck   
+   - Each element of the dictionary represent
+     - `truck_id`: the name of the truck
+     - `route`: the list  of the dictionary such as
+       - `node`: the id of the node
+       - `delivery`: the object leave on the node
+       - `leaving_time`: the time when the truck go
+       - `...`
 
 ## V) How to solve the problem
 ### V.1 Exact solution
 Finding an exact solution to this truck routing and delivery problem is computationally infeasible for realistic instances. The problem is NP-Hard, meaning that the time required to compute the optimal solution grows exponentially with the number of trucks, products, and nodes.
 
-### V.2.A Approximate solution 
+### V.2 Approximate solution 
 
 
 Approximate methods, also known as **metaheuristics**, provide a more feasible alternative. Instead of guaranteeing the optimal solution, they aim to find a solution that is “good enough” within a reasonable time frame. These methods explore the search space intelligently, balancing between intensification (improving the current solution) and diversification (exploring new regions of the solution space).  
@@ -577,20 +572,19 @@ The problem involves multiple constraints (truck capacities, delivery times, pro
 -Metaheuristics can adapt to additional constraints, such as fuel consumption or vehicle type restrictions.  
 
 -They produce high-quality solutions quickly, which is essential for practical logistics applications.  
-1. **Principle of Tabu Search**  
+#### V.2.a Principle of Tabu Search
 
 Tabu Search is a metaheuristic optimization technique used to find near-optimal solutions for complex combinatorial problems.
 
 Each solution represents a set of delivery routes for all trucks.
 At each iteration, the algorithm modifies one or more routes (for example, swapping deliveries between trucks or changing the order of visits) to reduce total cost or delivery time.  
 
-2. **Neighborhood structure**    
+#### V.2.b Neighborhood structure
 
-**Problem----------------------**
 If Truck 1 serves {A, B, C} and Truck 2 serves {D, E},
 a neighboring solution could swap delivery points B and D, changing both routes and potentially improving the total cost or satisfying capacity constraints.   
 
-3. **Evaluation function**    
+#### V.3.c Evaluation function   
 
 Each new solution is evaluated using an objective function  
 The goal is to minimize this objective function while respecting all the defined constraints.  
@@ -603,21 +597,21 @@ UnloadCost**
 
 The algorithm selects new solutions that improve this cost, or occasionally slightly worse ones to escape local optima.    
 
-4. **Tabu list (memory structure)** 
+#### V.2.d Tabu list (memory structure)
 
-**Problem----------------------**
 Suppose Truck 1 serves {A, B, C} and Truck 2 serves {D, E}.
 
 If the algorithm swaps deliveries A ↔ D, this move is added to the tabu list.  
 
 For the next few iterations, the algorithm cannot undo this swap, which helps it explore other route arrangements that may reduce the total travel time or satisfy capacity constraints better.    
 
-5. **Aspiration Criterion**    
+#### V.2.e **Aspiration Criterion**    
 
 Even if the swap A ↔ D is tabu, it will be accepted if it produces a new best solution, the total delivery cost drops to a record low.
 This ensures that the search does not miss high-quality solutions just because they are temporarily tabu.  
 
-### V.2.B Justification for Choosing Tabu Search  
+### V.3 Justification for Choosing Tabu Search  
+
 The method allows us to generate efficient delivery routes for all trucks, respecting all constraints, while keeping computation times manageable. It strikes a balance between solution quality and practical feasibility, making it the most suitable choice for our scenario.  
 
 -Tabu Search was chosen for several reasons:  
@@ -626,11 +620,10 @@ The method allows us to generate efficient delivery routes for all trucks, respe
 3-Flexibility and adaptability.  
 4-High-quality approximate solutions in reasonable time
 
-
-
-Which mutation do we?
-
-
+Mutation
+- cycle mutation (swap_node, move_customer, reverse_segment)
+- time mutation (variation_leaving_time)
+- product mutation (give_a_part_of_the_product)
 
 ---
 
