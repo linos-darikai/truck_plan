@@ -117,7 +117,12 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
         'total_load': total_load,
         'route': route
     }
+# endregion
 
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region EVALUATION AND FEASIBILITY
 def calculate_path_time(graph, truck, route_dict, service_time=0.5):
     """
     Calculate total time for a truck's path.
@@ -155,12 +160,7 @@ def calculate_path_time(graph, truck, route_dict, service_time=0.5):
         total_time += travel_time + service
     
     return total_time
-# endregion
 
-###########################################################################################################
-###########################################################################################################
-###########################################################################################################
-# region EVALUATION AND FEASIBILITY
 def evaluation(graph, trucks, solution, service_time=0.5):
     """Evaluate solution quality (minimize maximum route time)."""
     if not solution:
