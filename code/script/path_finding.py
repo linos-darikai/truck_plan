@@ -375,13 +375,13 @@ def show_benchmark(instance_name, benchmark_results):
 def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
     """
     Create a complete route dictionary with all timing information.
-    Compatible with your Graph class structure.
+    Compatible with Graph class structure.
 
     Args:
         truck_id: ID of the truck
         node_sequence: List of node IDs [0, 3, 7, 5, 0]
-        graph: Your Graph object (with graph.graph and graph.nodes)
-        truck: Your Truck object
+        graph: Graph object (with graph.graph and graph.nodes)
+        truck: Truck object
         service_time: Time to deliver at each customer
 
     Returns:
@@ -671,7 +671,7 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
         current_time = 0
 
         while customers:
-            # --- NEW FIX: Find FIRST valid customer from shuffled list ---
+            # --- Find FIRST valid customer from shuffled list ---
             customer_list = list(customers)
             r.shuffle(customer_list)
 
@@ -1399,7 +1399,7 @@ if __name__ == "__main__":
     # random.seed(42)
     # --- Setup ---
     # Define the instance file path here
-    instance_path = '../media/instances/X-n101-k25.vrp'
+    instance_path = '../media/instances/.vrp'
     # instance_path = '../media/instances/A-n32-k5.vrp'
 
     # Extract instance name from path (e.g., "A-n32-k5")
@@ -1421,8 +1421,6 @@ if __name__ == "__main__":
     benchmark_results = {}
 
     # ----------------------------------------------------------------
-
-    # ----------------------------------------------------------------
     # 1. Hill Climbing (HC) Run
     print("\n--- 1. Running Hill Climbing ---")
     hc_start_time = time.time()
@@ -1436,8 +1434,6 @@ if __name__ == "__main__":
     plot_vrp_solution(g, best_sol_hc, title=f"Hill Climbing Solution (Paths)")
     plot_cost_improvement(hist_hc, title="Hill Climbing: Cost Improvement History")
     plot_solution_gantt(best_sol_hc, title=f"Hill Climbing Schedule Time (Schedule)")
-    # ---------------------
-
 
     # ----------------------------------------------------------------
     # 2. Multi-Start Tabu Search (MSTS) Run

@@ -14,7 +14,6 @@ import vrplib
 # region Truck
 class Truck:
     """Simplified truck for single product, uniform capacity."""
-
     def __init__(self, truck_id, max_capacity=100, modifier=1.0):
         self.truck_id = truck_id
         self.truck_type = f"Truck_{truck_id}"  # Keep for compatibility
@@ -35,7 +34,6 @@ class Node:
     def __init__(self, node_id, demand=None):
         """
         Node in VRP graph.
-
         Args:
             node_id: Integer ID of node (0 = depot)
             demand: Integer demand (single product) or dict (multiple products)
@@ -164,7 +162,7 @@ class Graph:
                     # We store a simple lambda function that returns this distance,
                     # ignoring the time 't' for this standard CVRP problem.
                     self.graph[i][j] = lambda t, d=distance: d
-                    # --- END FIX ---
+
 
         # Extract instance info
         vehicle_capacity = instance.get('capacity', 100)
