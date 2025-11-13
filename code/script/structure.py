@@ -1,12 +1,10 @@
 import random as r
-from collections import deque
 import numpy as np
 import matplotlib.pyplot as plt
 import networkx as nx
 import dill
 import math as m
 import vrplib
-
 
 ###########################################################################################################
 ###########################################################################################################

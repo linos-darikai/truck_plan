@@ -20,6 +20,10 @@ solution = [
 ]
 """
 
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region AUXILIAR
 def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
     """
     Create a complete route dictionary with all timing information.
@@ -118,7 +122,6 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
         'route': route
     }
 
-
 def calculate_path_time(graph, truck, route_dict, service_time=0.5):
     """
     Calculate total time for a truck's path.
@@ -156,10 +159,12 @@ def calculate_path_time(graph, truck, route_dict, service_time=0.5):
         total_time += travel_time + service
     
     return total_time
-###############################################################################################
-###############################################################################################
-###############################################################################################
-####################### EVALUATION AND FEASIBILITY#############################################
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region EVALUATION AND FEASIBILITY
 def evaluation(graph, trucks, solution, service_time=0.5):
     """Evaluate solution quality (minimize maximum route time)."""
     if not solution:
@@ -268,13 +273,12 @@ def feasability(graph, trucks, solution):
                 return False, f"Node {node_idx}: Product {product_id} delivered but not demanded ({delivered[product_id]}/0)"
     
     return True, "Solution is feasible ✅"
+# endregion
 
-###############################################################################################
-###############################################################################################
-###############################################################################################
-##################################################################
-
-
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region FIRST SOLUTION
 
 def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
     """
@@ -344,15 +348,12 @@ def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
         raise RuntimeError(f"Cannot assign all customers: {len(customers)} remaining with {len(trucks)} trucks")
     
     return solution
+# endregion
 
-
-
-#########################################################################
-############## MUTATION #################################################
-
-
-
-
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region MUTATION
 
 def swap_within_route_mutation(solution, graph, trucks, service_time=0.5):
     """Swap two customers within the same route."""
@@ -389,7 +390,6 @@ def swap_within_route_mutation(solution, graph, trucks, service_time=0.5):
     new_solution[route_idx] = new_route_dict
     
     return new_solution
-
 
 def move_customer_mutation(solution, graph, trucks, service_time=0.5):
     """Move a customer from one route to another."""
@@ -448,7 +448,6 @@ def move_customer_mutation(solution, graph, trucks, service_time=0.5):
     
     return new_solution
 
-
 def reverse_segment_mutation(solution, graph, trucks, service_time=0.5):
     """Reverse a segment of a route (2-opt style)."""
     new_solution = copy.deepcopy(solution)
@@ -487,20 +486,12 @@ def reverse_segment_mutation(solution, graph, trucks, service_time=0.5):
     
     return new_solution
 
+# endregion
 
-
-
-
-
-####################################################################################################
-####################################################################################################
-####################################################################################################
-
-
-
-#########################################################################################################
-#########################################################################################################
-#######################  Hill climbing and Tabu search###################################################
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
+# region HILL CLIMBING & TABULIST
 
 def apply_random_mutation(solution, graph, trucks, service_time=0.5):
     """Apply a random mutation that preserves feasibility."""
@@ -524,8 +515,6 @@ def apply_random_mutation(solution, graph, trucks, service_time=0.5):
     
     # If all fail, return original
     return solution
-
-
 
 #hillclimbing 
 def hill_climbing(graph, trucks, max_iterations=1000):
@@ -566,14 +555,6 @@ def hill_climbing(graph, trucks, max_iterations=1000):
 
     return best_solution, best_score
   
-
-"""
-Multi-Start Tabu Search for VRP
-Combines multiple tabu search runs with different starting solutions
-"""
-
-
-
 # ============================================================================
 # TABU SEARCH COMPONENTS
 # ============================================================================
@@ -1042,9 +1023,11 @@ def adaptive_multi_start_tabu_search(graph, trucks, time_budget=300,
     
     return global_best_solution, global_best_score, statistics
 
-#########################################################################################################
-#########################################################################################################
-#########################################################################################################
+# endregion
+
+###########################################################################################################
+###########################################################################################################
+###########################################################################################################
 
 if __name__ == "__main__":
     # Load instance
