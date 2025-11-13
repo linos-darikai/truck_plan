@@ -111,14 +111,10 @@ def create_route_dict(truck_id, node_sequence, graph, truck, service_time=0.5):
             # Calculate travel time
             travel_time = edge_func(stop['departure']) * truck.modifier
             current_time = stop['departure'] + travel_time
-    
-    # Calculate max load (for capacity checking)
-    max_load = max(sum(stop['load_after'].values()) for stop in route)
-    
+       
     return {
         'truck_id': truck_id,
         'total_load': total_load,
-        'max_load': max_load,
         'route': route
     }
 
@@ -279,74 +275,73 @@ def feasability(graph, trucks, solution):
 ###########################################################################################################
 ###########################################################################################################
 # region FIRST SOLUTION
+def rest_demand(graph, customer_set):
+    demand_dict = {}
+    for node_idx in customer_set:
+        node = graph.nodes[node_idx]
+        if hasattr(node, "demand") and isinstance(node.demand, dict):
+            demand_dict[node_idx] = dict(node.demand)  # copie pour pouvoir modifier
+        else:
+            demand_dict[node_idx] = {}
+    return demand_dict
 
-def generate_feasible_initial_solution(graph, trucks, service_time=0.5):
+def generate_feasible_random_solution(graph, trucks, products, service_time=0.5):
     """
-    Generate feasible initial solution using nearest neighbor.
+    Génère une solution aléatoire feasible avec livraisons partielles et retours au dépôt
+    pour recharger si nécessaire.
+    Chaque client peut être servi par plusieurs camions si sa demande est trop grande.
     """
     n_nodes = len(graph.nodes)
-    customers = set(range(1, n_nodes))
+    rest_customer = set(range(1, n_nodes))
+    rest_demand_dict = rest_demand(graph, rest_customer)
+
     solution = []
-    
     truck_idx = 0
-    
-    while customers and truck_idx < len(trucks):
-        truck = trucks[truck_idx]
-        
-        # Build route for this truck
-        route = [0]  # Start at depot
-        current_node = 0
-        current_load_total = 0  # ✅ Track total load as a number
-        current_time = 0
-        
+
+    while rest_customer:
+        truck = trucks[truck_idx % len(trucks)]
+        remaining_capacity = truck.max_capacity
+        route = [0] 
+        customers = list(rest_customer)
+
         while customers:
-            # Find nearest customer that fits
-            best_customer = None
-            best_distance = float('inf')
-            
-            for customer in customers:
-                # Get demand
-                node = graph.nodes[customer]
-                demand = node.demand if isinstance(node.demand, dict) else {1: node.demand}
-                demand_total = sum(demand.values())
-                
-                # Check capacity
-                if current_load_total + demand_total <= truck.max_capacity:
-                    # Calculate distance
-                    dist = graph.graph[current_node][customer](current_time)
-                    if dist < best_distance:
-                        best_distance = dist
-                        best_customer = customer
-            
-            if best_customer is None:
-                break  # No more customers fit - truck is full
-            
-            # Add to route
-            node = graph.nodes[best_customer]
-            demand = node.demand if isinstance(node.demand, dict) else {1: node.demand}
-            demand_total = sum(demand.values())
-            
-            # Calculate times
-            travel_time = graph.graph[current_node][best_customer](current_time) * truck.modifier
-            current_time += travel_time + service_time
-            current_load_total += demand_total  # ✅ Update load
-            
-            route.append(best_customer)
-            customers.remove(best_customer)
-            current_node = best_customer
-        
-        # Return to depot
-        route.append(0)
-        
-        # Create route dict
-        route_dict = create_route_dict(truck.truck_id, route, graph, truck, service_time)
+            current_node = r.choice(customers)
+            node_demand = rest_demand_dict[current_node]
+            deliver_now = {}
+
+            for pid, qty in node_demand.items():
+                if pid not in truck.allowed_products:
+                    continue
+                prod_capacity = products[pid]["capacity"]
+                max_qty_by_capacity = remaining_capacity // prod_capacity
+                deliver_qty = min(qty, max_qty_by_capacity)
+                if deliver_qty > 0:
+                    deliver_now[pid] = deliver_qty
+                    remaining_capacity -= deliver_qty * prod_capacity
+
+            if deliver_now:
+                route.append(current_node)
+                for pid, qty in deliver_now.items():
+                    rest_demand_dict[current_node][pid] -= qty
+                    if rest_demand_dict[current_node][pid] == 0:
+                        del rest_demand_dict[current_node][pid]
+                if not rest_demand_dict[current_node]:
+                    rest_customer.remove(current_node)
+
+            if remaining_capacity == 0:
+                route.append(0)                 
+                remaining_capacity = truck.max_capacity
+                route.append(0)                 
+
+            customers = [c for c in rest_customer if c not in route]
+
+        if route[-1] != 0:
+            route.append(0)
+
+        route_dict = create_route_dict(truck.truck_id, route, graph, truck, service_time=service_time)
         solution.append(route_dict)
-        
-        truck_idx += 1  # ✅ Move to next truck
-    
-    if customers:
-        raise RuntimeError(f"Cannot assign all customers: {len(customers)} remaining with {len(trucks)} trucks")
-    
+        truck_idx += 1
+
     return solution
 # endregion
 
